@@ -41,7 +41,7 @@ export async function listBlocks(env, date) {
   const r = await fetch('https://graph.microsoft.com/v1.0/users/' + encodeURIComponent(env.MAILBOX) + '/calendarView?startDateTime=' + day(-1) + 'T00:00:00Z&endDateTime=' + day(2) + 'T00:00:00Z&$select=subject,start,end,isAllDay&$top=100', {
     headers: { authorization: 'Bearer ' + await token(env), prefer: 'outlook.timezone="' + tz + '"' }
   });
-  if (!r.ok) throw new Error('Graph calendarView ' + r.status);
+  if (!r.ok) throw new Error('Graph calendarView ' + r.status + ' ' + (await r.text()).replace(/\s+/g, ' ').slice(0, 220));
   const j = await r.json();
   const toMin = (s) => { const d = s.slice(0, 10), m = +s.slice(11, 13) * 60 + +s.slice(14, 16); return d < date ? 0 : d > date ? 1440 : m; };
   const v = (j.value || []).filter((e) => /^\s*blok/i.test(e.subject || '')).map((e) => {
