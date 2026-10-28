@@ -41,10 +41,10 @@ export async function onRequestPost({ request, env }) {
 
   let eventId = null, calendarNote = '';
   try {
-    eventId = await createEvent(env, { subject: `Work Café: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${b.total} KM, plaćanje po dolasku</p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
+    eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${b.total} KM, plaćanje po dolasku</p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
   } catch (e) { console.error(e); calendarNote = '<p><b>Upozorenje:</b> događaj nije upisan u kalendar. Dodajte ga ručno.</p>'; }
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
-  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Work Café', html: `<p>Poštovani/a ${esc(b.name)},</p><p>vaša rezervacija je <b>potvrđena</b>.</p>${summary(b)}<p>Plaćanje po dolasku, gotovinom ili karticom. Emerika Bluma 9, Sarajevo.</p><p>Ako ne možete doći: <a href="${cancel}">otkažite rezervaciju</a>.</p>` });
+  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: `<p>Poštovani/a ${esc(b.name)},</p><p>vaša rezervacija je <b>potvrđena</b>.</p>${summary(b)}<p>Plaćanje po dolasku, gotovinom ili karticom. Emerika Bluma 9, Sarajevo.</p><p>Ako ne možete doći: <a href="${cancel}">otkažite rezervaciju</a>.</p>` });
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }

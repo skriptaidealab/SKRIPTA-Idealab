@@ -1,4 +1,4 @@
-/* SKRIPTA Work Café booking widget.
+/* SKRIPTA Coffice booking widget.
    Live mode: talks to /api/dostupnost and /api/rezervacija (Cloudflare Pages Functions).
    Demo mode (API not reachable, e.g. local preview): simulated availability, nothing is sent. */
 (function () {
@@ -91,7 +91,7 @@
         if (j.wholeSpace && !j.starts.length) return message('Taj dan je prostor zauzet. Probajte drugi datum.');
         drawSlots(j.starts, dur);
       })
-      .catch(function () { if (seq === state.seq) message('Ne možemo učitati termine. Pokušajte ponovo ili nam pišite na info@skripta.ba.'); });
+      .catch(function () { if (seq === state.seq) message('Ne možemo učitati termine. Pokušaj ponovo ili nam piši na info@skripta.ba.'); });
   }
 
   function update() {
@@ -102,9 +102,9 @@
     if (state.start !== null && el.date.value) {
       var d = parseDate(el.date.value);
       el.sWhen.textContent = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. u ' + fmt(state.start) + ' do ' + fmt(state.start + state.dur * 60);
-    } else el.sWhen.textContent = 'Odaberite termin';
+    } else el.sWhen.textContent = 'Odaberi termin';
     el.total.textContent = total + ' KM';
-    el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'Napitci i PDV uključeni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad vam potvrdimo emailom.' : '');
+    el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'Napitci i PDV uključeni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
     el.out.hidden = true; el.err.hidden = true;
   }
@@ -126,8 +126,8 @@
   el.btn.addEventListener('click', function () {
     if (state.start === null) return;
     var name = el.name.value.trim(), email = el.email.value.trim(), phone = el.phone.value.trim();
-    if (!name) return fail('Upišite ime i prezime.', el.name);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Upišite ispravan email, na njega šaljemo potvrdu.', el.email);
+    if (!name) return fail('Upiši ime i prezime.', el.name);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Upiši ispravan email, na njega šaljemo potvrdu.', el.email);
     el.err.hidden = true;
     var n = persons(), total = PRICES[state.zone][state.dur] * n;
     if (!state.live) {
@@ -140,12 +140,12 @@
       body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, web: el.web.value })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
       .then(function (res) {
-        el.btn.textContent = 'Pošaljite zahtjev';
+        el.btn.textContent = 'Pošalji zahtjev';
         if (!res.ok) { el.btn.disabled = false; if (res.j && /slobodan/.test(res.j.error || '')) renderSlots(); return fail((res.j && res.j.error) || 'Slanje nije uspjelo.'); }
-        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ukupno ' + total + ' KM.</p><p>Rezervacija <b>nije potvrđena</b> dok vam ne potvrdimo emailom na ' + esc(email) + '. Provjerite i spam.</p>';
+        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ukupno ' + total + ' KM.</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
         el.out.hidden = false; el.btn.hidden = true;
       })
-      .catch(function () { el.btn.disabled = false; el.btn.textContent = 'Pošaljite zahtjev'; fail('Slanje nije uspjelo. Pišite nam na info@skripta.ba.'); });
+      .catch(function () { el.btn.disabled = false; el.btn.textContent = 'Pošalji zahtjev'; fail('Slanje nije uspjelo. Piši nam na info@skripta.ba.'); });
   });
 
   /* ---------- init ---------- */
@@ -159,7 +159,7 @@
   function setMode(live) {
     state.live = live;
     if (el.flag) el.flag.hidden = live;
-    el.btn.textContent = live ? 'Pošaljite zahtjev' : 'Prikaži primjer';
+    el.btn.textContent = live ? 'Pošalji zahtjev' : 'Prikaži primjer';
     renderSlots();
   }
   /* detect API: live only if it answers with JSON */
@@ -191,12 +191,12 @@
       .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
       .then(function (res) {
         if (!res.r.ok || !res.j.ok) throw new Error(res.j.error || 'fail');
-        ok.textContent = 'Upit je poslan. Poslali smo potvrdu primitka na vaš email. Ovo nije potvrđena rezervacija, javljamo vam se s ponudom.';
+        ok.textContent = 'Upit je poslan. Poslali smo potvrdu primitka na tvoj email. Ovo nije potvrđena rezervacija, javljamo ti se s ponudom.';
         ok.hidden = false; f.reset(); btn.textContent = label; btn.disabled = false;
       })
       .catch(function () {
         btn.textContent = label; btn.disabled = false;
-        ok.textContent = 'Slanje preko websitea nije uspjelo. Otvaramo vam email s pripremljenim upitom, ili nam pišite na info@skripta.ba.';
+        ok.textContent = 'Slanje preko websitea nije uspjelo. Otvaramo ti email s pripremljenim upitom, ili nam piši na info@skripta.ba.';
         ok.hidden = false; mailto();
       });
   });

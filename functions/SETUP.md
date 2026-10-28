@@ -26,7 +26,7 @@ Dok ne idete live: koristite Cloudflare preview adresu (pages.dev), ne skripta.b
 Kalendar info@skripta.ba je izvor istine.
 
 - **Najam cijelog prostora, zatvoreno, praznik, održavanje:** u Outlooku napravite događaj čiji naslov počinje sa `BLOK`, npr. `BLOK: radionica FES`. Cijeli dan: označite "All day". Taj termin (plus 30 min pripreme prije i poslije) nestaje s websitea u roku od oko minute. Brisanjem ili skraćivanjem događaja termin se vraća.
-- **Rezervacije Work Café:** dolaze emailom sa linkovima "Potvrdi i dodaj u kalendar" i "Odbij". Potvrda upisuje događaj `Work Café: ...` u kalendar i šalje gostu potvrdu s linkom za otkazivanje. Zahtjev koji ne potvrdite ne blokira termin.
+- **Rezervacije Coffice:** dolaze emailom sa linkovima "Potvrdi i dodaj u kalendar" i "Odbij". Potvrda upisuje događaj `Coffice: ...` u kalendar i šalje gostu potvrdu s linkom za otkazivanje. Zahtjev koji ne potvrdite ne blokira termin.
 - **Ručno poništiti potvrđenu rezervaciju:** gost je može otkazati linkom iz emaila. Ako vi otkazujete, javite mu se emailom. Briše se i događaj iz kalendara, ali status u bazi mijenja samo link za otkazivanje (admin stranica nije napravljena).
 - **Radno vrijeme, kapaciteti, tarife, pripremno vrijeme:** `functions/_lib/rules.js`. Brojevi označeni TODO čekaju potvrdu vlasnice: broj lounge mjesta (0 znači da je lounge isključen) i raspored café stolova.
 
