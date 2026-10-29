@@ -1,6 +1,7 @@
 import { NAMES, fmt, sarajevoNow } from '../_lib/rules.js';
 import { page, esc, readToken } from '../_lib/util.js';
 import { sendMail, deleteEvent } from '../_lib/graph.js';
+import { mail, C } from '../_lib/mail.js';
 
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
 const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
@@ -23,6 +24,6 @@ export async function onRequestPost({ request, env }) {
   if (b.date < now.date || (b.date === now.date && b.start_min <= now.min)) return page('Prekasno', '<h1>Termin je već počeo</h1><p>Javite nam se na info@skripta.ba.</p>', 400);
   await env.DB.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").bind(b.id).run();
   if (b.event_id) { try { await deleteEvent(env, b.event_id); } catch (e) { console.error(e); } }
-  await sendMail(env, { to: env.MAILBOX, subject: `Otkazano: ${NAMES[b.zone]}, ${whenOf(b)}`, html: `<p>${esc(b.name)} (${esc(b.email)}) je otkazao/la rezervaciju: ${esc(NAMES[b.zone])}, ${esc(whenOf(b))}.${b.event_id ? ' Događaj je uklonjen iz kalendara.' : ''}</p>` });
+  await sendMail(env, { to: env.MAILBOX, subject: `Otkazano: ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Gost je otkazao.', rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ime', b.name], ['Email', b.email]], note: b.event_id ? 'Događaj je uklonjen iz kalendara.' : '' }) });
   return page('Otkazano', '<h1>Rezervacija otkazana</h1><p>Hvala što ste nam javili.</p>');
 }

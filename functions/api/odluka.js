@@ -1,5 +1,6 @@
 import { checkQuery, freeStarts, loadDay, tableFor, NAMES, fmt } from '../_lib/rules.js';
 import { page, esc, makeToken, readToken } from '../_lib/util.js';
+import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
 
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
@@ -28,7 +29,7 @@ export async function onRequestPost({ request, env }) {
 
   if (k.action === 'odbij') {
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(b.id).run();
-    await sendMail(env, { to: b.email, subject: 'Vaš zahtjev za rezervaciju', html: `<p>Poštovani/a ${esc(b.name)},</p><p>nažalost ne možemo potvrditi traženi termin (${esc(NAMES[b.zone])}, ${esc(whenOf(b))}). Slobodno odaberite drugi termin na skripta.ba ili nam se javite na info@skripta.ba.</p>` });
+    await sendMail(env, { to: b.email, subject: 'Tvoj zahtjev za rezervaciju', html: mail({ chip: 'Nije potvrđeno', tone: 'no', accent: C.rose, title: 'Termin nije slobodan.', lead: `Nažalost ne možemo potvrditi traženi termin. Odaberi drugi na skripta.ba ili nam se javi na info@skripta.ba.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi drugi termin' }] }) });
     return page('Odbijeno', '<h1>Zahtjev odbijen</h1><p>Gost je obaviješten emailom.</p>');
   }
 
@@ -45,6 +46,6 @@ export async function onRequestPost({ request, env }) {
   } catch (e) { console.error(e); calendarNote = '<p><b>Upozorenje:</b> događaj nije upisan u kalendar. Dodajte ga ručno.</p>'; }
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
-  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: `<p>Poštovani/a ${esc(b.name)},</p><p>vaša rezervacija je <b>potvrđena</b>.</p>${summary(b)}<p>Plaćanje po dolasku, gotovinom ili karticom. Emerika Bluma 9, Sarajevo.</p><p>Ako ne možete doći: <a href="${cancel}">otkažite rezervaciju</a>.</p>` });
+  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', `${b.total} KM, plaćanje po dolasku`]], buttons: [{ href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su uključeni.' }) });
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }

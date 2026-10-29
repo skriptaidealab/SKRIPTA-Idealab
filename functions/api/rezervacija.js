@@ -1,5 +1,6 @@
 import { checkQuery, freeStarts, loadDay, total, NAMES, fmt } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
+import { mail } from '../_lib/mail.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
 
 export async function onRequestPost({ request, env }) {
@@ -21,10 +22,11 @@ export async function onRequestPost({ request, env }) {
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
-  const rows = `<p><b>${esc(NAMES[q.zone])}</b>, ${esc(when)}<br>${q.persons} ${q.persons === 1 ? 'osoba' : 'osobe'}, ukupno <b>${sum} KM</b> (plaćanje po dolasku)<br>${esc(name)}, ${esc(email)}${phone ? ', ' + esc(phone) : ''}</p>`;
+  const rows = [['Zona', NAMES[q.zone]], ['Termin', when], ['Ukupno', `${sum} KM, plaćanje po dolasku`]];
+  const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   try {
-    await sendMail(env, { to: env.MAILBOX, replyTo: email, subject: `Zahtjev za rezervaciju: ${NAMES[q.zone]}, ${when}`, html: `<p>Novi zahtjev za rezervaciju. Nije potvrđen.</p>${rows}<p><a href="${yes}">Potvrdi i dodaj u kalendar</a> &nbsp;|&nbsp; <a href="${no}">Odbij</a></p><p style="color:#666">Klik otvara stranicu na kojoj potvrđujete odluku.</p>` });
-    await sendMail(env, { to: email, subject: 'Primili smo vaš zahtjev za rezervaciju', html: `<p>Poštovani/a ${esc(name)},</p><p>primili smo vaš zahtjev. <b>Rezervacija nije potvrđena</b> dok vam ne potvrdimo emailom.</p>${rows}<p>SKRIPTA, Emerika Bluma 9, Sarajevo<br>info@skripta.ba, +387 62 307 885</p>` });
+    await sendMail(env, { to: env.MAILBOX, replyTo: email, subject: `Zahtjev za rezervaciju: ${NAMES[q.zone]}, ${when}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Čeka odluku', tone: 'wait', title: 'Novi zahtjev za rezervaciju.', lead: 'Termin je zauzet tek kad potvrdiš. Klik otvara stranicu na kojoj potvrđuješ odluku.', rows: [...rows, ...guest], buttons: [{ href: yes, label: 'Potvrdi i dodaj u kalendar' }, { href: no, label: 'Odbij', kind: 'ghost' }] }) });
+    await sendMail(env, { to: email, subject: 'Primili smo tvoj zahtjev za rezervaciju', html: mail({ chip: 'Još nije potvrđeno', tone: 'wait', title: 'Zahtjev je primljen.', lead: `Hvala, ${esc(name)}. Termin je tvoj tek kad ti potvrdimo emailom.`, rows, note: 'Kafa ili čaj su uključeni u cijenu. Ako se predomisliš ili trebaš promjenu, odgovori na ovaj email.' }) });
   } catch (e) {
     console.error(e);
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(id).run();
