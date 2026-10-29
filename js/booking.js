@@ -152,7 +152,7 @@
   var d0 = new Date(), min = new Date(d0);
   if (d0.getHours() >= 19) min.setDate(min.getDate() + 1);
   if (min.getDay() === 0) min.setDate(min.getDate() + 1);
-  var max = new Date(d0); max.setDate(max.getDate() + 60);
+  var max = new Date(d0); max.setDate(max.getDate() + 7);
   el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
   el.personsWrap.hidden = true;
 

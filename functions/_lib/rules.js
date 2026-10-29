@@ -1,15 +1,15 @@
 // Shared booking rules. Values marked TODO are owner decisions or proposals.
 export const OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30;
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
-export const MAX_DAYS = 60;
+export const MAX_DAYS = 7;          // furthest bookable date: 7 days ahead
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
 export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 8: 28 },
   lounge: { 1: 5, 2: 8,  4: 13, 8: 18 }
 };
 export const NAMES = { ind: 'Individualna zona', lounge: 'Lounge zona' };
-// TODO owner: confirm real numbers. lounge = 0 keeps lounge unavailable until set.
-export const CAPACITY = { ind: 10, lounge: 0, cafeTables: [3, 2] };
+// Seats per zone (confirmed by owner). A slot is free while confirmed bookings overlapping it use fewer seats than this.
+export const CAPACITY = { ind: 15, lounge: 13 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 export const total = (zone, dur, persons) => PRICES[zone][dur] * persons;
@@ -24,7 +24,7 @@ const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d
 export function checkQuery(q) {
   if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
   if (![1, 2, 4, 8].includes(q.dur)) return 'Nepoznato trajanje.';
-  const maxP = q.zone === 'cafe' ? 3 : 1, minP = q.zone === 'cafe' ? 2 : 1;
+  const maxP = 1, minP = 1;
   if (!Number.isInteger(q.persons) || q.persons < minP || q.persons > maxP) return 'Neispravan broj osoba.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';
   const d = dayNum(q.date), n = dayNum(sarajevoNow().date);
@@ -39,13 +39,6 @@ export function tableFor(q, start, bookings) {
   const steps = [];
   for (let t = start; t < start + q.dur * 60; t += STEP) steps.push(t);
   const used = (t, pred) => bookings.filter((b) => pred(b) && b.start_min <= t && t < b.start_min + b.dur_h * 60).reduce((s, b) => s + b.persons, 0);
-  if (q.zone === 'cafe') {
-    for (let i = 0; i < CAPACITY.cafeTables.length; i++) {
-      const cap = CAPACITY.cafeTables[i];
-      if (q.persons <= cap && steps.every((t) => used(t, (b) => b.zone === 'cafe' && b.table_idx === i) + q.persons <= cap)) return i;
-    }
-    return -1;
-  }
   const cap = CAPACITY[q.zone];
   return steps.every((t) => used(t, (b) => b.zone === q.zone) + q.persons <= cap) ? 0 : -1;
 }
