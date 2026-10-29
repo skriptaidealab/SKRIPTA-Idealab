@@ -5,8 +5,8 @@
   var root = document.getElementById('rezervacija');
   if (!root) return;
 
-  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 8: 30 }, cafe: { 1: 6, 2: 10, 4: 15, 8: 25 }, lounge: { 1: 5, 2: 8, 4: 13, 8: 20 } };
-  var NAMES = { ind: 'Individualna zona', cafe: 'Café zona', lounge: 'Lounge zona' };
+  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 8: 28 }, lounge: { 1: 5, 2: 8, 4: 13, 8: 18 } };
+  var NAMES = { ind: 'Individualna zona', lounge: 'Lounge zona' };
   var OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30, LEAD_MIN = 60;
 
   var $ = function (s) { return root.querySelector(s); };
@@ -104,7 +104,7 @@
       el.sWhen.textContent = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. u ' + fmt(state.start) + ' do ' + fmt(state.start + state.dur * 60);
     } else el.sWhen.textContent = 'Odaberi termin';
     el.total.textContent = total + ' KM';
-    el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'Napitci i PDV uključeni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
+    el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV i jedna kafa ili čaj po dolasku uključeni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
     el.out.hidden = true; el.err.hidden = true;
   }
@@ -169,7 +169,7 @@
     .catch(function () { setMode(false); });
   setMode(false);
 
-  var m = /[?&]zona=(ind|cafe|lounge)/.exec(location.search);
+  var m = /[?&]zona=(ind|lounge)/.exec(location.search);
   if (m) { var r = root.querySelector('input[name=zone][value=' + m[1] + ']'); if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } }
 })();
 

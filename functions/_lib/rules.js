@@ -4,11 +4,10 @@ export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahe
 export const MAX_DAYS = 60;
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
 export const PRICES = {
-  ind:    { 1: 7, 2: 12, 4: 20, 8: 30 },
-  cafe:   { 1: 6, 2: 10, 4: 15, 8: 25 },
-  lounge: { 1: 5, 2: 8,  4: 13, 8: 20 }
+  ind:    { 1: 7, 2: 12, 4: 20, 8: 28 },
+  lounge: { 1: 5, 2: 8,  4: 13, 8: 18 }
 };
-export const NAMES = { ind: 'Individualna zona', cafe: 'Café zona', lounge: 'Lounge zona' };
+export const NAMES = { ind: 'Individualna zona', lounge: 'Lounge zona' };
 // TODO owner: confirm real numbers. lounge = 0 keeps lounge unavailable until set.
 export const CAPACITY = { ind: 10, lounge: 0, cafeTables: [3, 2] };
 
@@ -23,7 +22,7 @@ export function sarajevoNow() {
 const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000);
 
 export function checkQuery(q) {
-  if (!['ind', 'cafe', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
+  if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
   if (![1, 2, 4, 8].includes(q.dur)) return 'Nepoznato trajanje.';
   const maxP = q.zone === 'cafe' ? 3 : 1, minP = q.zone === 'cafe' ? 2 : 1;
   if (!Number.isInteger(q.persons) || q.persons < minP || q.persons > maxP) return 'Neispravan broj osoba.';

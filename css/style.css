@@ -1427,3 +1427,24 @@ footer .logo-word { color: #fff; }
 .space .facts li { padding: 13px 0; border-bottom: 1px solid var(--line-strong); display: flex; gap: 18px; font-size: 1rem; }
 .space .facts b { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; width: 112px; flex-shrink: 0; padding-top: 4px; color: var(--indigo); }
 @media (max-width: 860px) { .space .wrap { grid-template-columns: 1fr; gap: 44px; } }
+
+/* ---- colour photos of the space, FLEX, two zones ---- */
+.ph-img { display: block; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: normal; filter: none; }
+.zone .ph img, .team-block .framed img, .prac .ph img, .block-rust .framed img, .space .arch img { mix-blend-mode: normal; filter: none; }
+.zones.two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px; }
+.seg.zone-seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.flex-sec { background: var(--mustard); color: var(--ink); }
+.flex-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: end; margin-bottom: 44px; }
+.flex-head h2 { margin: 14px 0 0; text-transform: uppercase; font-size: clamp(2.4rem, 6vw, 4.6rem); }
+.flex-head p { margin: 0; font-size: 1.05rem; max-width: 46ch; }
+.flex-head a { color: inherit; }
+.flex-row { margin-top: 28px; }
+.flex-row h3 { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
+.flex-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.flex-card { background: #fff; padding: 22px 22px 20px; display: grid; gap: 4px; }
+.flex-card .fn { font-size: 0.74rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.flex-card b { font-weight: 900; font-size: clamp(2.2rem, 4vw, 3.2rem); letter-spacing: -0.05em; line-height: 1; }
+.flex-card b i { font-style: normal; font-size: 0.9rem; letter-spacing: 0; font-weight: 800; }
+.flex-card .fd { font-size: 0.85rem; font-weight: 700; }
+@media (max-width: 860px) { .flex-head { grid-template-columns: 1fr; gap: 20px; } .zones.two { grid-template-columns: 1fr; gap: 44px; } }
+@media (max-width: 620px) { .flex-grid { grid-template-columns: 1fr; gap: 10px; } .flex-card { grid-template-columns: 1fr auto; align-items: baseline; } .flex-card .fd { grid-column: 1 / -1; } }
