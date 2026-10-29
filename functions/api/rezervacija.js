@@ -8,7 +8,7 @@ export async function onRequestPost({ request, env }) {
   if (b.web) return json({ ok: true }); // honeypot: bots fill this hidden field
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
   const start = +b.pocetak, name = clean(b.ime, 100), email = clean(b.email, 160), phone = clean(b.telefon, 40);
-  const err = checkQuery(q) || (!name ? 'Upišite ime.' : !isEmail(email) ? 'Upišite ispravan email.' : null);
+  const err = checkQuery(q) || (name.split(/\s+/).length < 2 ? 'Upiši ime i prezime.' : !isEmail(email) ? 'Upiši ispravan email.' : null);
   if (err) return json({ ok: false, error: err }, 400);
   let day;
   try { day = await loadDay(env, q.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Pišite nam na info@skripta.ba.' }, 503); }

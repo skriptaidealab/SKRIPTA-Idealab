@@ -126,7 +126,7 @@
   el.btn.addEventListener('click', function () {
     if (state.start === null) return;
     var name = el.name.value.trim(), email = el.email.value.trim(), phone = el.phone.value.trim();
-    if (!name) return fail('Upiši ime i prezime.', el.name);
+    if (name.split(/\s+/).length < 2) return fail('Upiši ime i prezime.', el.name);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Upiši ispravan email, na njega šaljemo potvrdu.', el.email);
     el.err.hidden = true;
     var n = persons(), total = PRICES[state.zone][state.dur] * n;
