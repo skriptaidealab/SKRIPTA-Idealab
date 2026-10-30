@@ -6,7 +6,7 @@
   if (!root) return;
 
   var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 8: 28 }, lounge: { 1: 5, 2: 8, 4: 13, 8: 18 } };
-  var NAMES = { ind: 'Individualna zona', lounge: 'Lounge zona' };
+  var NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
   var OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30, LEAD_MIN = 60;
 
   var $ = function (s) { return root.querySelector(s); };

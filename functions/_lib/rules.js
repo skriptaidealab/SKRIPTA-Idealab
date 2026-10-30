@@ -7,7 +7,7 @@ export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 8: 28 },
   lounge: { 1: 5, 2: 8,  4: 13, 8: 18 }
 };
-export const NAMES = { ind: 'Individualna zona', lounge: 'Lounge zona' };
+export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
 // Seats per zone (confirmed by owner). A slot is free while confirmed bookings overlapping it use fewer seats than this.
 export const CAPACITY = { ind: 15, lounge: 13 };
 
