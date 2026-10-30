@@ -26,7 +26,7 @@ export async function onRequestPost({ request, env }) {
   const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   try {
     await sendMail(env, { to: env.MAILBOX, replyTo: email, subject: `Zahtjev za rezervaciju: ${NAMES[q.zone]}, ${when}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Čeka odluku', tone: 'wait', title: 'Novi zahtjev za rezervaciju.', lead: 'Termin je zauzet tek kad potvrdiš. Klik otvara stranicu na kojoj potvrđuješ odluku.', rows: [...rows, ...guest], buttons: [{ href: yes, label: 'Potvrdi i dodaj u kalendar' }, { href: no, label: 'Odbij', kind: 'ghost' }] }) });
-    await sendMail(env, { to: email, subject: 'Primili smo tvoj zahtjev za rezervaciju', html: mail({ chip: 'Još nije potvrđeno', tone: 'wait', title: 'Zahtjev je primljen.', lead: `Hvala, ${esc(name)}. Termin je tvoj tek kad ti potvrdimo emailom.`, rows, note: 'Kafa ili čaj su uključeni u cijenu. Ako se predomisliš ili trebaš promjenu, odgovori na ovaj email.' }) });
+    await sendMail(env, { to: email, subject: 'Primili smo tvoj zahtjev za rezervaciju', html: mail({ chip: 'Još nije potvrđeno', tone: 'wait', title: 'Zahtjev je primljen.', lead: `Hvala, ${esc(name)}. Termin je tvoj tek kad ti potvrdimo emailom.`, rows, note: 'Kafa ili čaj su besplatni. Ako se predomisliš ili trebaš promjenu, odgovori na ovaj email.' }) });
   } catch (e) {
     console.error(e);
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(id).run();
