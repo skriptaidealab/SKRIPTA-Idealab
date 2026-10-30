@@ -1448,3 +1448,4 @@ footer .logo-word { color: #fff; }
 .flex-card .fd { font-size: 0.85rem; font-weight: 700; }
 @media (max-width: 860px) { .flex-head { grid-template-columns: 1fr; gap: 20px; } .zones.two { grid-template-columns: 1fr; gap: 44px; } }
 @media (max-width: 620px) { .flex-grid { grid-template-columns: 1fr; gap: 10px; } .flex-card { grid-template-columns: 1fr auto; align-items: baseline; } .flex-card .fd { grid-column: 1 / -1; } }
+.poster .kick { font-size: clamp(1.5rem, 5.2vw, 4.4rem); font-weight: 900; letter-spacing: -0.04em; line-height: 0.95; margin-bottom: clamp(10px, 1.6vw, 22px); }
