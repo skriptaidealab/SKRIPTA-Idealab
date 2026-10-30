@@ -10,7 +10,7 @@ export async function onRequestPost({ request, env }) {
   const rows = [['Ime', f.ime], ['Email', f.email], ['Telefon', f.tel], ['Datum', f.datum], ['Trajanje', f.trajanje], ['Učesnika', f.broj], ['Vrsta', f.vrsta], ['Napomena', f.napomena]];
   try {
     await sendMail(env, { to: env.MAILBOX, replyTo: f.email, subject: `Upit: najam cijelog prostora (${f.ime})`, html: mail({ brand: 'SKRIPTA IdeaLab · interno', accent: C.rose, chip: 'Upit', title: 'Novi upit za cijeli prostor.', lead: 'Upit s websitea. Nije rezervacija.', rows }) });
-    await sendMail(env, { to: f.email, subject: 'Primili smo vaš upit', html: mail({ brand: 'SKRIPTA IdeaLab', accent: C.rose, chip: 'Nije rezervacija', title: 'Upit je primljen.', lead: `Hvala, ${esc(f.ime)}. Provjeravamo termin i javljamo vam se s ponudom. Ovo nije potvrđena rezervacija.`, rows }) });
+    await sendMail(env, { to: f.email, subject: 'Primili smo tvoj upit', html: mail({ brand: 'SKRIPTA IdeaLab', accent: C.rose, chip: 'Nije rezervacija', title: 'Upit je primljen.', lead: `Hvala, ${esc(f.ime)}. Provjeravamo termin i javljamo ti se s ponudom. Ovo nije potvrđena rezervacija.`, rows }) });
   } catch (e) { console.error(e); return json({ ok: false, error: 'Slanje nije uspjelo.' }, 502); }
   return json({ ok: true });
 }
