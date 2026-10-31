@@ -52,19 +52,20 @@
   }
 
   /* ---------- rendering ---------- */
-  function drawSlots(allowed, dur) {
+  function drawSlots(allowed, dur, open, close) {
+    open = open == null ? OPEN : open; close = close == null ? CLOSE : close;
     el.slots.innerHTML = '';
-    for (var t = OPEN; t < CLOSE; t += STEP) {
+    for (var t = open; t < close; t += STEP) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'slot'; b.textContent = fmt(t); b.dataset.t = t;
       b.disabled = allowed.indexOf(t) < 0;
-      if (t + dur > CLOSE) b.title = 'Nema dovoljno vremena do zatvaranja';
+      if (t + dur > close) b.title = 'Nema dovoljno vremena do zatvaranja';
       b.setAttribute('aria-pressed', String(state.start === t));
       el.slots.appendChild(b);
     }
     if (state.start !== null && allowed.indexOf(state.start) < 0) state.start = null;
     el.slotHint.textContent = state.dur === 8
-      ? 'Dnevna tarifa traje osam sati. Početak je moguć najkasnije u ' + fmt(CLOSE - 480) + '.'
+      ? 'Dnevna tarifa traje osam sati. Početak je moguć najkasnije u ' + fmt(close - 480) + '.'
       : (allowed.length ? 'Prikazani su slobodni termini. Precrtani su zauzeti ili prekasni.' : 'Nema slobodnih termina za ovaj izbor. Probajte drugi datum ili kraće trajanje.');
     update();
   }
@@ -89,7 +90,7 @@
         if (seq !== state.seq) return;
         if (!j.ok) return message(j.error || 'Termini trenutno nisu dostupni.');
         if (j.wholeSpace && !j.starts.length) return message('Taj dan je prostor zauzet. Probajte drugi datum.');
-        drawSlots(j.starts, dur);
+        drawSlots(j.starts, dur, j.open, j.close);
       })
       .catch(function () { if (seq === state.seq) message('Ne možemo učitati termine. Pokušaj ponovo ili nam piši na info@skripta.ba.'); });
   }

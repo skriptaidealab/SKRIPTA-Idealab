@@ -1,4 +1,4 @@
-import { checkQuery, freeStarts, loadDay, fmt } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, hoursFor, fmt } from '../_lib/rules.js';
 import { json } from '../_lib/util.js';
 import { listBlocks } from '../_lib/graph.js';
 
@@ -11,5 +11,6 @@ export async function onRequestGet({ request, env }) {
   try { day = await loadDay(env, q.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Pišite nam na info@skripta.ba.', starts: [], ...(env.TEST_MODE ? { debug: String(e && e.message || e).slice(0, 300) } : {}) }, 503); }
   const { bookings, blocks } = day;
   const starts = freeStarts(q, bookings, blocks);
-  return json({ ok: true, starts, labels: starts.map(fmt), wholeSpace: blocks.length > 0 });
+  const [open, close] = hoursFor(q.date);
+  return json({ ok: true, starts, labels: starts.map(fmt), open, close, wholeSpace: blocks.length > 0 });
 }

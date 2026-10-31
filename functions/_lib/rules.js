@@ -1,5 +1,12 @@
 // Shared booking rules. Values marked TODO are owner decisions or proposals.
 export const OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30;
+// Dates with shortened opening hours (minutes from midnight): [open, close].
+export const SPECIAL_HOURS = {
+  '2026-11-04': [10 * 60, 20 * 60],
+  '2026-11-05': [10 * 60, 20 * 60],
+  '2026-11-06': [10 * 60, 20 * 60]
+};
+export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 7;          // furthest bookable date: 7 days ahead
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
@@ -44,8 +51,8 @@ export function tableFor(q, start, bookings) {
 }
 
 export function freeStarts(q, bookings, blocks) {
-  const out = [], now = sarajevoNow();
-  for (let s = OPEN; s + q.dur * 60 <= CLOSE; s += STEP) {
+  const out = [], now = sarajevoNow(), [open, close] = hoursFor(q.date);
+  for (let s = open; s + q.dur * 60 <= close; s += STEP) {
     const e = s + q.dur * 60;
     if (q.date === now.date && s < now.min + LEAD_MIN) continue;
     if (blocks.some((b) => s < b.end_min + BUFFER_MIN && e > b.start_min - BUFFER_MIN)) continue;
