@@ -1,4 +1,4 @@
-import { checkQuery, freeStarts, loadDay, total, NAMES, fmt } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
@@ -15,14 +15,14 @@ export async function onRequestPost({ request, env }) {
   const { bookings, blocks } = day;
   if (!freeStarts(q, bookings, blocks).includes(start)) return json({ ok: false, error: 'Taj termin više nije slobodan. Odaberite drugi.' }, 409);
 
-  const id = newId(), sum = total(q.zone, q.dur, q.persons);
+  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date);
   await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
-  const rows = [['Zona', NAMES[q.zone]], ['Termin', when], ['Ukupno', `${sum} KM, plaćanje po dolasku`]];
+  const rows = [['Zona', NAMES[q.zone]], ['Termin', when], ['Ukupno', priceText(sum)]];
   const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   try {
     await sendMail(env, { to: env.MAILBOX, replyTo: email, subject: `Zahtjev za rezervaciju: ${NAMES[q.zone]}, ${when}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Čeka odluku', tone: 'wait', title: 'Novi zahtjev za rezervaciju.', lead: 'Termin je zauzet tek kad potvrdiš. Klik otvara stranicu na kojoj potvrđuješ odluku.', rows: [...rows, ...guest], buttons: [{ href: yes, label: 'Potvrdi i dodaj u kalendar' }, { href: no, label: 'Odbij', kind: 'ghost' }] }) });

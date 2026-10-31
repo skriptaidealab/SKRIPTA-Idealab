@@ -1,11 +1,11 @@
-import { checkQuery, freeStarts, loadDay, tableFor, NAMES, fmt } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, tableFor, priceText, NAMES, fmt } from '../_lib/rules.js';
 import { page, esc, makeToken, readToken } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
 
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
 const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
-const summary = (b) => `<dl><dt>Zona</dt><dd>${esc(NAMES[b.zone])}, ${b.persons} ${b.persons === 1 ? 'osoba' : 'osobe'}</dd><dt>Termin</dt><dd>${esc(whenOf(b))}</dd><dt>Ukupno</dt><dd>${b.total} KM, plaćanje po dolasku</dd><dt>Gost</dt><dd>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}</dd></dl>`;
+const summary = (b) => `<dl><dt>Zona</dt><dd>${esc(NAMES[b.zone])}, ${b.persons} ${b.persons === 1 ? 'osoba' : 'osobe'}</dd><dt>Termin</dt><dd>${esc(whenOf(b))}</dd><dt>Ukupno</dt><dd>${priceText(b.total)}</dd><dt>Gost</dt><dd>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}</dd></dl>`;
 
 // GET only shows a page. Mail scanners that pre-open links therefore cannot confirm anything.
 export async function onRequestGet({ request, env }) {
@@ -42,10 +42,10 @@ export async function onRequestPost({ request, env }) {
 
   let eventId = null, calendarNote = '';
   try {
-    eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${b.total} KM, plaćanje po dolasku</p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
+    eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${priceText(b.total)}</p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
   } catch (e) { console.error(e); calendarNote = '<p><b>Upozorenje:</b> događaj nije upisan u kalendar. Dodajte ga ručno.</p>'; }
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
-  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', `${b.total} KM, plaćanje po dolasku`]], buttons: [{ href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
+  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', priceText(b.total)]], buttons: [{ href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }

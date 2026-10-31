@@ -6,6 +6,9 @@ export const SPECIAL_HOURS = {
   '2026-11-05': [10 * 60, 20 * 60],
   '2026-11-06': [10 * 60, 20 * 60]
 };
+// Dates when booking is free of charge (opening days).
+export const FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06'];
+export const isFree = (date) => FREE_DATES.includes(date);
 export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 7;          // furthest bookable date: 7 days ahead
@@ -19,7 +22,8 @@ export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
 export const CAPACITY = { ind: 15, lounge: 13 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-export const total = (zone, dur, persons) => PRICES[zone][dur] * persons;
+export const total = (zone, dur, persons, date) => (isFree(date) ? 0 : PRICES[zone][dur] * persons);
+export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${sum} KM, plaćanje po dolasku`);
 
 export function sarajevoNow() {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
