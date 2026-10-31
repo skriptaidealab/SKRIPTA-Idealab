@@ -159,6 +159,8 @@
   var max = new Date(d0); max.setDate(max.getDate() + 7);
   el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
   el.personsWrap.hidden = true;
+  var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
+  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && parseDate(dm[1]).getDay() !== 0) el.date.value = dm[1];
 
   function setMode(live) {
     state.live = live;

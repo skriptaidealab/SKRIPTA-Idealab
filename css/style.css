@@ -1449,3 +1449,13 @@ footer .logo-word { color: #fff; }
 @media (max-width: 860px) { .flex-head { grid-template-columns: 1fr; gap: 20px; } .zones.two { grid-template-columns: 1fr; gap: 44px; } }
 @media (max-width: 620px) { .flex-grid { grid-template-columns: 1fr; gap: 10px; } .flex-card { grid-template-columns: 1fr auto; align-items: baseline; } .flex-card .fd { grid-column: 1 / -1; } }
 .poster .kick { font-size: clamp(1.5rem, 5.2vw, 4.4rem); font-weight: 900; letter-spacing: -0.04em; line-height: 0.95; margin-bottom: clamp(10px, 1.6vw, 22px); }
+
+/* ---- Open day banner (shown until 6.11.2026 by js/main.js) ---- */
+.openday { display: none; margin-top: 24px; padding: 14px 18px; background: var(--mustard); color: var(--ink); text-decoration: none; max-width: 460px; }
+.openday b { display: block; font-size: clamp(1.15rem, 2.4vw, 1.6rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
+.openday span { display: block; margin-top: 6px; font-size: 0.76rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.openday:hover { filter: brightness(0.96); }
+.openday-note { display: none; margin: 0 0 18px; padding: 12px 16px; background: var(--mustard); color: var(--ink); font-size: 1rem; }
+body.is-openday .openday { display: inline-block; }
+body.is-openday .openday-note { display: block; }
+body.is-openday .poster .hero-price { display: none; }
