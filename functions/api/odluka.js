@@ -47,5 +47,9 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
   await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', priceText(b.total)]], buttons: [{ href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
+  // Internal notification so the team sees every confirmation in the inbox, not only in the calendar.
+  try {
+    await sendMail(env, { to: env.MAILBOX, subject: `Potvrđeno: ${b.name}, ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Rezervacija je potvrđena.', lead: 'Gost je obaviješten emailom.', rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', priceText(b.total)], ['Ime', b.name], ['Email', b.email], ['Telefon', b.phone || '']], note: eventId ? 'Događaj je dodan u kalendar.' : 'Događaj NIJE dodan u kalendar. Dodajte ga ručno.' }) });
+  } catch (e) { console.error(e); }
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }
