@@ -1,6 +1,7 @@
 import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
+import { markOptIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
 
 export async function onRequestPost({ request, env }) {
@@ -19,20 +20,7 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
-  if (b.novosti === true) {
-    // Optional newsletter opt-in. Never blocks the booking if the table is missing.
-    try { await env.DB.prepare('INSERT OR IGNORE INTO subscribers (email, name, created_at, source) VALUES (?,?,?,?)').bind(email.toLowerCase(), name, new Date().toISOString(), 'rezervacija').run(); } catch (e) { console.error(e); }
-    // Optional automatic sync to MailerLite. Skipped unless MAILERLITE_API_KEY is set; never blocks the booking.
-    if (env.MAILERLITE_API_KEY) {
-      try {
-        const parts = name.split(/\s+/), last = parts.length > 1 ? parts.pop() : '';
-        const body = { email: email.toLowerCase(), fields: { name: parts.join(' '), last_name: last } };
-        if (env.MAILERLITE_GROUP_ID) body.groups = [env.MAILERLITE_GROUP_ID];
-        const r = await fetch('https://connect.mailerlite.com/api/subscribers', { method: 'POST', headers: { authorization: 'Bearer ' + env.MAILERLITE_API_KEY, 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) });
-        if (!r.ok) console.error('MailerLite', r.status, (await r.text()).slice(0, 200));
-      } catch (e) { console.error(e); }
-    }
-  }
+  if (b.novosti === true) await markOptIn(env, id); // acted on only when the booking is confirmed
 
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;

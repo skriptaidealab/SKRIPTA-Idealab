@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   email TEXT NOT NULL,
   phone TEXT,
   table_idx INTEGER,
-  event_id TEXT
+  event_id TEXT,
+  newsletter INTEGER DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date, status);
 -- Newsletter subscribers: only people who tick the optional checkbox in the booking form.

@@ -1,6 +1,7 @@
 import { checkQuery, freeStarts, loadDay, tableFor, priceText, NAMES, fmt } from '../_lib/rules.js';
 import { page, esc, makeToken, readToken } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
+import { subscribeIfOptedIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../_lib/graph.js';
 
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
@@ -60,6 +61,7 @@ export async function onRequestPost({ request, env }) {
     eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${priceText(b.total)}</p><p><a href="${cancelUs}">Otkaži ovu rezervaciju (mi otkazujemo)</a></p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
   } catch (e) { console.error(e); calendarNote = '<p><b>Upozorenje:</b> događaj nije upisan u kalendar. Dodajte ga ručno.</p>'; }
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
+  await subscribeIfOptedIn(env, b);
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
   await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ukupno', priceText(b.total)]], buttons: [{ href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
   // Internal notification so the team sees every confirmation in the inbox, not only in the calendar.
