@@ -159,8 +159,31 @@
   var max = new Date(d0); max.setDate(max.getDate() + 7);
   el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
   el.personsWrap.hidden = true;
+  /* ---------- day picker: Sundays are shown but cannot be clicked ---------- */
+  var WD = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
+  function drawDays() {
+    var box = document.getElementById('b-days'); if (!box) return;
+    box.innerHTML = '';
+    var d = parseDate(el.date.min), end = parseDate(el.date.max);
+    for (; d <= end; d.setDate(d.getDate() + 1)) {
+      var v = iso(d), b = document.createElement('button');
+      b.type = 'button'; b.className = 'day'; b.dataset.d = v;
+      b.disabled = d.getDay() === 0;
+      b.setAttribute('aria-pressed', String(el.date.value === v));
+      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : '');
+      box.appendChild(b);
+    }
+    box.onclick = function (e) {
+      var b = e.target.closest('.day'); if (!b || b.disabled) return;
+      el.date.value = b.dataset.d;
+      Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+      el.date.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+  }
+
   var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
   if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && parseDate(dm[1]).getDay() !== 0) el.date.value = dm[1];
+  drawDays();
 
   function setMode(live) {
     state.live = live;

@@ -1463,3 +1463,15 @@ body.is-openday .poster .hero-price { display: none; }
 /* Newsletter opt-in in the booking form */
 .news-opt { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; line-height: 1.35; cursor: pointer; }
 .news-opt input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--indigo); }
+
+/* Day picker in the booking form (Sundays disabled) */
+.days { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
+.day { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; border: 1.5px solid var(--ink); background: #fff; font: inherit; color: var(--ink); cursor: pointer; border-radius: 0; }
+.day small { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 800; }
+.day b { font-size: 0.95rem; font-weight: 800; }
+.day i { font-style: normal; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; background: var(--mustard); color: var(--ink); padding: 1px 5px; margin-top: 2px; }
+.day:hover:not(:disabled) { background: var(--butter); }
+.day[aria-pressed=true] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.day[aria-pressed=true] i { background: #fff; }
+.day:disabled { opacity: 0.38; text-decoration: line-through; cursor: not-allowed; }
+.day:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }

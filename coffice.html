@@ -273,8 +273,11 @@
               <select id="b-persons"><option value="2">2 osobe</option><option value="3">3 osobe</option></select>
               <p class="hint">Cijena je po osobi. Sistem provjerava da grupa može sjediti zajedno.</p>
             </div>
+            <div class="fld"><span class="lab" id="l-date">2. Datum</span>
+              <input type="hidden" id="b-date">
+              <div id="b-days" class="days" role="group" aria-labelledby="l-date"></div>
+            </div>
             <div class="two">
-              <div class="fld"><label class="lab" for="b-date">2. Datum</label><input type="date" id="b-date"></div>
               <div class="fld"><span class="lab" id="l-dur">Trajanje</span>
                 <div class="seg" role="radiogroup" aria-labelledby="l-dur" style="grid-template-columns:1fr 1fr;">
                   <label><input type="radio" name="dur" value="1" checked><span>1 sat</span></label>
