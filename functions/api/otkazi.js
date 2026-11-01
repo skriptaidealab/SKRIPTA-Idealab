@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
   if (!b) return page('Link nije ispravan', '<h1>Link nije ispravan</h1>', 400);
   if (!['confirmed', 'pending'].includes(b.status)) return page('Već otkazano', '<h1>Rezervacija nije aktivna</h1>');
   const pend = b.status === 'pending';
-  return page(pend ? 'Povlačenje zahtjeva' : 'Otkazivanje', `<h1>${pend ? 'Povući zahtjev za rezervaciju?' : 'Otkazati rezervaciju?'}</h1><p>${esc(NAMES[b.zone])}, ${esc(whenOf(b))}</p><form method="post"><input type="hidden" name="t" value="${esc(t)}"><button>${pend ? 'Povuci zahtjev' : 'Otkaži rezervaciju'}</button></form>`);
+  return page(pend ? 'Otkazivanje zahtjeva' : 'Otkazivanje', `<h1>${pend ? 'Otkazati zahtjev za rezervaciju?' : 'Otkazati rezervaciju?'}</h1><p>${esc(NAMES[b.zone])}, ${esc(whenOf(b))}</p><form method="post"><input type="hidden" name="t" value="${esc(t)}"><button>${pend ? 'Otkaži zahtjev' : 'Otkaži rezervaciju'}</button></form>`);
 }
 
 export async function onRequestPost({ request, env }) {
@@ -26,6 +26,6 @@ export async function onRequestPost({ request, env }) {
   const pend = b.status === 'pending';
   await env.DB.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").bind(b.id).run();
   if (b.event_id) { try { await deleteEvent(env, b.event_id); } catch (e) { console.error(e); } }
-  await sendMail(env, { to: env.MAILBOX, subject: `${pend ? 'Zahtjev povučen' : 'Otkazano'}: ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: pend ? 'Povučeno' : 'Otkazano', tone: 'no', accent: C.rose, title: pend ? 'Gost je povukao zahtjev.' : 'Gost je otkazao.', rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ime', b.name], ['Email', b.email]], note: pend ? 'Nije potrebna nikakva radnja. Dugmad u ranijem mailu s ovim zahtjevom više ne rade.' : (b.event_id ? 'Događaj je uklonjen iz kalendara.' : '') }) });
-  return page(pend ? 'Zahtjev povučen' : 'Otkazano', pend ? '<h1>Zahtjev povučen</h1><p>Hvala što si nam javio/la.</p>' : '<h1>Rezervacija otkazana</h1><p>Hvala što si nam javio/la.</p>');
+  await sendMail(env, { to: env.MAILBOX, subject: `${pend ? 'Zahtjev otkazan' : 'Otkazano'}: ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: pend ? 'Otkazano' : 'Otkazano', tone: 'no', accent: C.rose, title: pend ? 'Gost je otkazao zahtjev.' : 'Gost je otkazao.', rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ime', b.name], ['Email', b.email]], note: pend ? 'Nije potrebna nikakva radnja. Dugmad u ranijem mailu s ovim zahtjevom više ne rade.' : (b.event_id ? 'Događaj je uklonjen iz kalendara.' : '') }) });
+  return page(pend ? 'Zahtjev otkazan' : 'Otkazano', pend ? '<h1>Zahtjev otkazan</h1><p>Hvala što si nam javio/la.</p>' : '<h1>Rezervacija otkazana</h1><p>Hvala što si nam javio/la.</p>');
 }
