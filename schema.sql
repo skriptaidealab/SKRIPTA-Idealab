@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS bookings (
   event_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date, status);
+-- Newsletter subscribers: only people who tick the optional checkbox in the booking form.
+CREATE TABLE IF NOT EXISTS subscribers (
+  email TEXT PRIMARY KEY,
+  name TEXT,
+  created_at TEXT NOT NULL,
+  source TEXT
+);
 -- Whole-space rentals. Insert one row per confirmed rental (the code adds the prep buffer).
 CREATE TABLE IF NOT EXISTS blocks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

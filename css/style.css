@@ -1459,3 +1459,7 @@ footer .logo-word { color: #fff; }
 body.is-openday .openday { display: inline-block; }
 body.is-openday .openday-note { display: block; }
 body.is-openday .poster .hero-price { display: none; }
+
+/* Newsletter opt-in in the booking form */
+.news-opt { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; line-height: 1.35; cursor: pointer; }
+.news-opt input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--indigo); }

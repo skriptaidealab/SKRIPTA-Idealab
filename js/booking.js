@@ -15,7 +15,7 @@
     personsWrap: $('#b-persons-wrap'), dayMsg: $('#b-day-msg'),
     sZone: $('#s-zone'), sWhen: $('#s-when'), sPeople: $('#s-people'), sDur: $('#s-dur'),
     total: $('#s-total'), totalSub: $('#s-total-sub'), btn: $('#b-confirm'),
-    name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), out: $('#b-out'), err: $('#b-err')
+    name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), news: $('#b-news'), out: $('#b-out'), err: $('#b-err')
   };
   var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0 };
 
@@ -141,7 +141,7 @@
     el.btn.disabled = true; el.btn.textContent = 'Šaljem...';
     fetch('/api/rezervacija', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, web: el.web.value })
+      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, novosti: !!(el.news && el.news.checked), web: el.web.value })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
       .then(function (res) {
         el.btn.textContent = 'Pošalji zahtjev';

@@ -19,6 +19,11 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
+  if (b.novosti === true) {
+    // Optional newsletter opt-in. Never blocks the booking if the table is missing.
+    try { await env.DB.prepare('INSERT OR IGNORE INTO subscribers (email, name, created_at, source) VALUES (?,?,?,?)').bind(email.toLowerCase(), name, new Date().toISOString(), 'rezervacija').run(); } catch (e) { console.error(e); }
+  }
+
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
