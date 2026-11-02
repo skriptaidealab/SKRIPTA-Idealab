@@ -16,8 +16,8 @@ async function sendReminder(env, b, test = false) {
 
 export async function onRequestPost({ request, env }) {
   const key = (request.headers.get('x-cron-secret') || '').trim(), want = String(env.CRON_SECRET || '').trim();
-  if (!want) return new Response('CRON_SECRET missing', { status: 403 });
-  if (key.length !== want.length || [...key].some((c, i) => c !== want[i])) return new Response(`Forbidden (sent ${key.length}, expected ${want.length})`, { status: 403 });
+  if (!want) return new Response('Forbidden', { status: 403 });
+  if (key.length !== want.length || [...key].some((c, i) => c !== want[i])) return new Response('Forbidden', { status: 403 });
 
   const testTo = new URL(request.url).searchParams.get('test');
   if (testTo) {
