@@ -11,7 +11,8 @@ export const FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06'];
 export const isFree = (date) => FREE_DATES.includes(date);
 export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
-export const MAX_DAYS = 7;          // furthest bookable date: 7 days ahead
+export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
+export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Sat 9-14.11.)
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
 export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 8: 28 },
@@ -40,7 +41,7 @@ export function checkQuery(q) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';
   const d = dayNum(q.date), n = dayNum(sarajevoNow().date);
   if (new Date(d * 86400000).getUTCDay() === 0) return 'Nedjeljom ne radimo.';
-  if (d < n || d > n + MAX_DAYS) return 'Datum je van raspona.';
+  if (d < n || d > Math.max(n + MAX_DAYS, dayNum(OPEN_UNTIL))) return 'Datum je van raspona.';
   if (q.zone === 'lounge' && !CAPACITY.lounge) return 'Lounge zona još nije dostupna za online rezervaciju.';
   return null;
 }
