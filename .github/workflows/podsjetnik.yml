@@ -2,7 +2,12 @@ name: Podsjetnici za rezervacije
 on:
   schedule:
     - cron: '7 * * * *'   # svakih sat vremena
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: 'Neobavezno: pošalji testni podsjetnik na ovaj email'
+        required: false
+        default: ''
 jobs:
   podsjetnik:
     runs-on: ubuntu-latest
@@ -10,7 +15,9 @@ jobs:
       - name: Pozovi podsjetnike
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TEST_EMAIL: ${{ inputs.test_email }}
         run: |
-          echo "GitHub secret length: ${#CRON_SECRET}"
-          curl -sS -w "\nHTTP %{http_code}\n" -X POST https://skripta-1k7.pages.dev/api/podsjetnik -H "x-cron-secret: $CRON_SECRET" | tee out.txt
+          URL="https://skripta-1k7.pages.dev/api/podsjetnik"
+          if [ -n "$TEST_EMAIL" ]; then URL="$URL?test=$TEST_EMAIL"; fi
+          curl -sS -w "\nHTTP %{http_code}\n" -X POST "$URL" -H "x-cron-secret: $CRON_SECRET" | tee out.txt
           grep -q "HTTP 200" out.txt
