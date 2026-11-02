@@ -26,12 +26,12 @@ export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + St
 export const total = (zone, dur, persons, date) => (isFree(date) ? 0 : PRICES[zone][dur] * persons);
 export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${sum} KM, plaćanje po dolasku`);
 
-export function sarajevoNow() {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+export function sarajevoNow(at = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);
   const g = (t) => parts.find((p) => p.type === t).value;
   return { date: `${g('year')}-${g('month')}-${g('day')}`, min: +g('hour') * 60 + +g('minute') };
 }
-const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000);
+export const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000);
 
 export function checkQuery(q) {
   if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
