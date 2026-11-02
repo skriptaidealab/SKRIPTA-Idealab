@@ -8,4 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pozovi podsjetnike
-        run: curl -fsS -X POST https://www.skripta.ba/api/podsjetnik -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X POST https://www.skripta.ba/api/podsjetnik -H "x-cron-secret: $CRON_SECRET"
