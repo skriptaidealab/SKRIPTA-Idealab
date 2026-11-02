@@ -9,6 +9,9 @@ export const SPECIAL_HOURS = {
 // Dates when booking is free of charge (opening days).
 export const FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06'];
 export const isFree = (date) => FREE_DATES.includes(date);
+// Frozen windows: no NEW bookings can touch these (minutes from midnight). Existing confirmed bookings stay;
+// pending requests can still be confirmed. Remove an entry to reopen the window.
+export const FROZEN = { '2026-11-04': [[11 * 60, 14 * 60]] };
 export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
@@ -60,6 +63,7 @@ export function freeStarts(q, bookings, blocks) {
   for (let s = open; s + q.dur * 60 <= close; s += STEP) {
     const e = s + q.dur * 60;
     if (q.date === now.date && s < now.min + LEAD_MIN) continue;
+    if ((FROZEN[q.date] || []).some(([a, z]) => s < z && e > a)) continue;
     if (blocks.some((b) => s < b.end_min + BUFFER_MIN && e > b.start_min - BUFFER_MIN)) continue;
     if (tableFor(q, s, bookings) < 0) continue;
     out.push(s);
