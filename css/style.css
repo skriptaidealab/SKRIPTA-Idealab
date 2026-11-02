@@ -1475,3 +1475,8 @@ body.is-openday .poster .hero-price { display: none; }
 .day[aria-pressed=true] i { background: #fff; }
 .day:disabled { opacity: 0.38; text-decoration: line-through; cursor: not-allowed; }
 .day:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+
+/* FLEX package order button (opens a prefilled email) */
+.flex-card .flex-order { margin-top: 12px; display: inline-block; justify-self: start; padding: 11px 18px; background: var(--ink); color: #fff; border: 2px solid var(--ink); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background .15s ease, color .15s ease, transform .15s ease; }
+.flex-card .flex-order:hover { background: #fff; color: var(--ink); transform: translateY(-2px); }
+@media (max-width: 620px) { .flex-card .flex-order { grid-column: 1 / -1; margin-top: 8px; justify-self: stretch; text-align: center; } }
