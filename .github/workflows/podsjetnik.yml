@@ -11,4 +11,6 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl -fsS -X POST https://www.skripta.ba/api/podsjetnik -H "x-cron-secret: $CRON_SECRET"
+          echo "GitHub secret length: ${#CRON_SECRET}"
+          curl -sS -w "\nHTTP %{http_code}\n" -X POST https://www.skripta.ba/api/podsjetnik -H "x-cron-secret: $CRON_SECRET" | tee out.txt
+          grep -q "HTTP 200" out.txt
