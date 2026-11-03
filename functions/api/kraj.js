@@ -10,7 +10,7 @@ const LEAD = 15;
 
 async function send(env, b, test = false) {
   const end = fmt(b.start_min + b.dur_h * 60);
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Još 15 minuta.', lead: `Tvoj termin završava u ${end}, ${esc(niceName(b.name))}.`, rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši novi termin', kind: 'ghost' }], note: 'Ako ti treba još vremena, provjeri slobodne termine na skripta.ba.' }) });
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala vam što ste posjetili COFFICE!', lead: 'Vaš rezervisani termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ukoliko želite produžiti boravak, molimo vas da se obratite staff-u.<br><br>Hvala na razumijevanju i radujemo se vašoj ponovnoj posjeti!' }) });
 }
 
 export async function onRequestPost({ request, env }) {
