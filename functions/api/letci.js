@@ -52,7 +52,7 @@ const BACK = `<div class="a5 back"><div class="circ b"></div>
 <tr><td>Posjete od 2 h</td><td>51 KM</td><td>96 KM</td><td>168 KM</td></tr>
 <tr><td>Posjete od 8 h</td><td>119 KM</td><td>224 KM</td><td>392 KM</td></tr>
 <tr class="pop"><td>Popust</td><td>15%</td><td>20%</td><td>30%</td></tr></table>
-<p class="sub flex">Za FLEX pakete molimo da nas kontaktirate na <b>info@skripta.ba</b></p>
+<p class="sub flex">Za FLEX pakete piši nam na <b>info@skripta.ba</b></p>
 <div class="foot"><span>Sve cijene su u KM i uključuju PDV. Kafa ili čaj su uključeni.</span></div></div>`;
 
 function front(env, b, qr, date) {
