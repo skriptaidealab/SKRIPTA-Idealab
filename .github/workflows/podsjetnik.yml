@@ -1,7 +1,6 @@
 name: Podsjetnici za rezervacije
 on:
-  schedule:
-    - cron: '7 * * * *'   # svakih sat vremena
+  # Raspored ukinut: podsjetnike pokreće Cloudflare Worker skripta-podsjetnik (cron 7 * * * *).
   workflow_dispatch:
     inputs:
       test_email:
