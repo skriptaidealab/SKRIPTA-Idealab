@@ -37,3 +37,5 @@ export async function readToken(env, token, allowed) {
 export const newId = () => b64u(crypto.getRandomValues(new Uint8Array(12)));
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 160;
 export const clean = (s, n = 200) => String(s ?? '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, n);
+
+export const niceName = (s) => String(s ?? '').trim().toLocaleLowerCase('bs').replace(/(^|[\s\-'])(\p{L})/gu, (m, a, c) => a + c.toLocaleUpperCase('bs'));

@@ -1,7 +1,7 @@
 // Sends "15 minutes left" e-mails. Only guests who scanned the QR code at check-in get one.
 // Called every 5 minutes by the Cloudflare Worker in workers/kraj-cron. Protected by CRON_SECRET.
 import { NAMES, fmt, sarajevoNow, dayNum } from '../_lib/rules.js';
-import { esc, isEmail } from '../_lib/util.js';
+import { esc, isEmail, niceName } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { sendMail } from '../_lib/graph.js';
 
@@ -10,7 +10,7 @@ const LEAD = 15;
 
 async function send(env, b, test = false) {
   const end = fmt(b.start_min + b.dur_h * 60);
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Još 15 minuta.', lead: `Tvoj termin završava u ${end}, ${esc(b.name)}.`, rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši novi termin', kind: 'ghost' }], note: 'Ako ti treba još vremena, provjeri slobodne termine na skripta.ba.' }) });
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Još 15 minuta.', lead: `Tvoj termin završava u ${end}, ${esc(niceName(b.name))}.`, rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši novi termin', kind: 'ghost' }], note: 'Ako ti treba još vremena, provjeri slobodne termine na skripta.ba.' }) });
 }
 
 export async function onRequestPost({ request, env }) {

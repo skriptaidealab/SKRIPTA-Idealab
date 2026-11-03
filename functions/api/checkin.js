@@ -1,7 +1,7 @@
 // QR check-in. The QR code on the printed welcome sheet opens this URL; the first scan is stored.
 // Only a confirmed booking can check in, from 30 minutes before the start until the end of the slot.
 import { NAMES, fmt, sarajevoNow, dayNum } from '../_lib/rules.js';
-import { page, esc, readToken } from '../_lib/util.js';
+import { page, esc, readToken, niceName } from '../_lib/util.js';
 
 const abs = (date, min) => dayNum(date) * 1440 + min;
 
@@ -19,6 +19,6 @@ export async function onRequestGet({ request, env }) {
   if (nowAbs >= endAbs) return page('Termin je završen', `<h1>Termin je završen</h1>${info}`);
 
   await env.DB.prepare('UPDATE bookings SET checked_in_at = ? WHERE id = ? AND checked_in_at IS NULL').bind(new Date().toISOString(), b.id).run();
-  const first = esc(String(b.name).split(' ')[0]);
+  const first = esc(niceName(b.name).split(' ')[0]);
   return page('Potvrđeno', `<h1>Dobro došao/la, ${first}.</h1><p>Dolazak je zabilježen. Tvoj termin završava u ${fmt(b.start_min + b.dur_h * 60)}. Podsjetnik ti šaljemo emailom 15 minuta prije kraja.</p>${info}`);
 }

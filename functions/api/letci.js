@@ -1,7 +1,7 @@
 // Print-ready welcome sheets for one day: A4 landscape, two A5 sheets per page, price list on the back.
 // Link is signed (see jutro.js) because the page lists guest names. Open it, press Ctrl/Cmd+P, choose A4 + double-sided.
 import { NAMES, fmt, PRICES } from '../_lib/rules.js';
-import { esc, readToken } from '../_lib/util.js';
+import { esc, readToken, niceName } from '../_lib/util.js';
 import { makeToken } from '../_lib/util.js';
 import qrcode from '../_lib/qr.js';
 
@@ -60,7 +60,7 @@ function front(env, b, qr, date) {
   return `<div class="a5"><div class="circ" style="background:${COL[b.zone] || COL.ind}"></div>
 <div class="top"><b>SKRIPTA Coffice</b><span>skripta.ba</span></div>
 <div class="eyebrow">Dobrodošao/la</div>
-<h1>${esc(b.name)}</h1>
+<h1>${esc(niceName(b.name))}</h1>
 <div class="time"><span>${fmt(b.start_min)}</span><span class="do">do ${fmt(end)}</span></div>
 <div class="grid"><div><i>Zona</i><b>${esc(NAMES[b.zone])}</b></div><div><i>Datum</i><b>${date}</b></div><div><i>Trajanje</i><b>${b.dur_h} h</b></div><div><i>Za platiti</i><b>${b.total === 0 ? 'Besplatno' : km(b.total)}</b></div></div>
 <div class="wifi"><div><i>Wi-Fi mreža</i><b>${esc(env.WIFI_SSID || 'SKRIPTA GUEST')}</b></div><div><i>Šifra</i><b>${esc(env.WIFI_PASS)}</b></div></div>
