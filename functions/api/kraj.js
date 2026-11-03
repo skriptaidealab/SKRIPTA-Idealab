@@ -10,7 +10,7 @@ const LEAD = 15;
 
 async function send(env, b, test = false) {
   const end = fmt(b.start_min + b.dur_h * 60);
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala vam što ste posjetili COFFICE!', lead: 'Vaš rezervisani termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ukoliko želite produžiti boravak, molimo vas da se obratite staff-u.<br><br>Hvala na razumijevanju i radujemo se vašoj ponovnoj posjeti!' }) });
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala vam što ste posjetili COFFICE!', lead: 'Vaš rezervisani termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ukoliko želite produžiti boravak, molimo vas da se obratite našem osoblju.<br><br>Hvala na razumijevanju i radujemo se vašoj ponovnoj posjeti!' }) });
 }
 
 export async function onRequestPost({ request, env }) {
