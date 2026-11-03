@@ -46,7 +46,7 @@ Novo: `api/checkin.js`, `api/kraj.js`, `api/letci.js`, `api/jutro.js`, `_lib/qr.
 1. **Baza (prvo, prije objave koda):** u D1 konzoli baze `skripta` pokrenite `migrations/2026-11-03-checkin.sql` (dvije kolone: `checked_in_at`, `end_reminded`).
 2. **Pages varijable:** `WIFI_PASS` (šifra gost mreže), `LETCI_TO` (email koji prima jutarnji link), po želji `WIFI_SSID` (zadano SKRIPTA GUEST). `CRON_SECRET` i `SIGNING_SECRET` već postoje.
 3. **Objava:** push na GitHub, Pages objavi funkcije.
-4. **Worker za raspored:** Workers & Pages, Create, Worker `skripta-cron`, zalijepite `workers/kraj-cron/index.js`. Settings, Variables: `SITE_URL` (isti kao u `wrangler.toml`), secret `CRON_SECRET` (ista vrijednost kao u Pages). Settings, Triggers, Cron Triggers: `0 6 * * 1-6` i `*/5 6-20 * * 1-6`. (UTC: 06:00 je 07:00 u Sarajevu zimi, a 08:00 ljeti.)
+4. **Worker za raspored:** Workers & Pages, Create, Worker `skripta-cron`, zalijepite `workers/kraj-cron/index.js`. Settings, Variables: `SITE_URL` (isti kao u `wrangler.toml`), secret `CRON_SECRET` (ista vrijednost kao u Pages). Settings, Triggers, Cron Triggers: `0 6 * * MON-SAT` i `*/5 6-20 * * MON-SAT`. (UTC: 06:00 je 07:00 u Sarajevu zimi, a 08:00 ljeti.)
 5. **Test:** `POST /api/kraj?test=vas@email` (header `x-cron-secret`) šalje testni "Još 15 minuta". `POST /api/jutro?d=YYYY-MM-DD` šalje jutarnji mail za taj datum. Link iz maila otvara letke za printanje.
 
 Pravila: podsjetnik pred kraj dobijaju samo gosti koji su skenirali QR kod, i to samo ako su skenirali prije zadnjih 15 minuta termina. Check-in radi od 30 minuta prije početka do kraja termina. Dolasci su u koloni `checked_in_at`. Gosti bez skeniranja: `checked_in_at IS NULL` nakon kraja termina.

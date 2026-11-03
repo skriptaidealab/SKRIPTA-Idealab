@@ -2,7 +2,7 @@
 // Variables: SITE_URL (e.g. https://skripta-1k7.pages.dev), secret CRON_SECRET (same value as in the Pages project).
 export default {
   async scheduled(event, env) {
-    const path = event.cron === '0 6 * * 1-6' ? '/api/jutro' : '/api/kraj';
+    const path = event.cron.startsWith('0 6 ') ? '/api/jutro' : '/api/kraj';
     const r = await fetch(env.SITE_URL + path, { method: 'POST', headers: { 'x-cron-secret': env.CRON_SECRET } });
     console.log(path, r.status, await r.text());
   }
