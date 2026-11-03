@@ -132,6 +132,8 @@
     var name = el.name.value.trim(), email = el.email.value.trim(), phone = el.phone.value.trim();
     if (name.split(/\s+/).length < 2) return fail('Upiši ime i prezime.', el.name);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Upiši ispravan email, na njega šaljemo potvrdu.', el.email);
+    var digits = phone.replace(/\D/g, '');
+    if (!/^\+?[\d\s().\/-]{6,}$/.test(phone) || digits.length < 8 || digits.length > 15) return fail('Upiši broj telefona, javljamo se samo ako zatreba.', el.phone);
     el.err.hidden = true;
     var n = persons(), total = isFree() ? 0 : PRICES[state.zone][state.dur] * n;
     if (!state.live) {
