@@ -1,0 +1,10 @@
+name = "skripta-cron"
+main = "index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+SITE_URL = "https://skripta-1k7.pages.dev"
+
+[triggers]
+# 06:00 UTC = 07:00 u Sarajevu zimi: jutarnji mail s letcima. Svakih 5 minuta u radno vrijeme: podsjetnici pred kraj termina.
+crons = ["0 6 * * 1-6", "*/5 6-20 * * 1-6"]
