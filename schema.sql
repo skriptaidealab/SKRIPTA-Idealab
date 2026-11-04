@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   newsletter INTEGER DEFAULT 0,
   reminded INTEGER DEFAULT 0,
   checked_in_at TEXT,        -- UTC ISO time of the QR check-in scan
-  end_reminded INTEGER DEFAULT 0 -- 1 once the end-of-slot reminder was sent or skipped
+  end_reminded INTEGER DEFAULT 0, -- 1 once the thank-you e-mail was sent or skipped
+  left_at TEXT               -- UTC ISO time the guest was marked as left (occupancy tracker)
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date, status);
 -- Newsletter subscribers: only people who tick the optional checkbox in the booking form.

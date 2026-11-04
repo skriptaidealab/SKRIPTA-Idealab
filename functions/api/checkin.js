@@ -20,5 +20,5 @@ export async function onRequestGet({ request, env }) {
 
   await env.DB.prepare('UPDATE bookings SET checked_in_at = ? WHERE id = ? AND checked_in_at IS NULL').bind(new Date().toISOString(), b.id).run();
   const first = esc(niceName(b.name).split(' ')[0]);
-  return page('Potvrđeno', `<h1>Dobro došao/la, ${first}.</h1><p>Dolazak je zabilježen. Tvoj termin završava u ${fmt(b.start_min + b.dur_h * 60)}. Podsjetnik ti šaljemo emailom 15 minuta prije kraja.</p>${info}`);
+  return page('Potvrđeno', `<h1>Dobro došao/la, ${first}.</h1><p>Dolazak je zabilježen. Tvoj termin završava u ${fmt(b.start_min + b.dur_h * 60)}. Nakon termina ti šaljemo kratku zahvalu emailom.</p>${info}`);
 }

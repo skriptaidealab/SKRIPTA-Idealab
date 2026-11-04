@@ -64,7 +64,7 @@ function front(env, b, qr, date) {
 <div class="time"><span>${fmt(b.start_min)}</span><span class="do">do ${fmt(end)}</span></div>
 <div class="grid"><div><i>Zona</i><b>${esc(NAMES[b.zone])}</b></div><div><i>Datum</i><b>${date}</b></div><div><i>Trajanje</i><b>${b.dur_h} h</b></div><div><i>Za platiti</i><b>${b.total === 0 ? 'Besplatno' : km(b.total)}</b></div></div>
 <div class="wifi"><div><i>Wi-Fi mreža</i><b>${esc(env.WIFI_SSID || 'SKRIPTA GUEST')}</b></div><div><i>Šifra</i><b>${esc(env.WIFI_PASS)}</b></div></div>
-<div class="qrtxt"><b>Skeniraj kad stigneš.</b>Tako potvrđuješ dolazak, a mi ti šaljemo podsjetnik 15 minuta prije kraja termina.</div>
+<div class="qrtxt"><b>Skeniraj kad stigneš.</b>Tako potvrđuješ dolazak, a nakon termina ti šaljemo kratku zahvalu.</div>
 <div class="qr">${qr}Check-in</div>
 <div class="foot"><span class="sl">Kafa. Laptop. COFFICE.</span><span>Cjenovnik na poleđini</span></div></div>`;
 }

@@ -1,4 +1,4 @@
-// Sends "15 minutes left" e-mails. Only guests who scanned the QR code at check-in get one.
+// Sends the thank-you e-mail when the slot ends, or as soon as the guest is marked as left (left_at). Only guests who scanned the QR code at check-in get one.
 // Called every 5 minutes by the Cloudflare Worker in workers/kraj-cron. Protected by CRON_SECRET.
 import { NAMES, fmt, sarajevoNow, dayNum } from '../_lib/rules.js';
 import { esc, isEmail, niceName } from '../_lib/util.js';
@@ -6,11 +6,12 @@ import { mail, C } from '../_lib/mail.js';
 import { sendMail } from '../_lib/graph.js';
 
 const abs = (date, min) => dayNum(date) * 1440 + min;
-const LEAD = 15;
+const LATE = 90; // minutes after the end of the slot until a thank-you is still sent
 
 async function send(env, b, test = false) {
-  const end = fmt(b.start_min + b.dur_h * 60);
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti COFFICE-u!', lead: 'Tvoj termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ako želiš produžiti boravak, javi se našem osoblju.<br><br>Hvala ti i vidimo se opet!<br><br><b style="color:#1A1A1A">Prije nego kreneš:</b> imaš li tri minute da nam kažeš šta misliš o prostoru? <a href="https://forms.cloud.microsoft/e/22pC0hMy1u" style="color:#1A1A1A;font-weight:700">Ispuni kratku anketu</a>. Anonimna je i pomaže nam da ga uredimo po tvojoj mjeri.' }) });
+  const first = esc(niceName(b.name).split(' ')[0]);
+  const when = `${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Hvala na posjeti, SKRIPTA Coffice`, html: mail({ chip: 'Hvala', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti!', lead: `Hvala ti, ${first}. Nadamo se da ti je u COFFICE-u bilo ugodno.`, rows: [['Zona', NAMES[b.zone]], ['Termin', when]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši ponovo' }], note: 'Vidimo se opet!<br><br><b style="color:#1A1A1A">Imaš li tri minute?</b> Reci nam šta misliš o prostoru. <a href="https://forms.cloud.microsoft/e/22pC0hMy1u" style="color:#1A1A1A;font-weight:700">Ispuni kratku anketu</a>. Anonimna je i pomaže nam da ga uredimo po tvojoj mjeri.' }) });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -30,13 +31,10 @@ export async function onRequestPost({ request, env }) {
   const done = (id) => env.DB.prepare('UPDATE bookings SET end_reminded = 1 WHERE id = ?').bind(id).run();
   for (const b of rows) {
     const endAbs = abs(b.date, b.start_min + b.dur_h * 60), left = endAbs - nowAbs;
-    if (left > LEAD) continue;                                   // too early
-    if (left <= 0 || !b.checked_in_at) {                         // slot over, or the guest never scanned
-      if (left <= 0) { await done(b.id); if (b.checked_in_at) skipped++; }
-      continue;                                                  // not scanned yet: they can still scan until the end
-    }
-    const ci = sarajevoNow(new Date(b.checked_in_at));
-    if (abs(ci.date, ci.min) > endAbs - LEAD) { await done(b.id); skipped++; continue; } // scanned inside the last 15 minutes
+    if (!b.checked_in_at) { if (left <= 0) await done(b.id); continue; }  // never scanned the QR: no e-mail
+    const departed = !!b.left_at;                                         // marked as left in the occupancy tracker
+    if (!departed && left > 0) continue;                                  // still inside the slot
+    if (!departed && left < -LATE) { await done(b.id); skipped++; continue; } // slot ended long ago (e.g. cron was down): do not send a stale thank-you
     try { await send(env, b); await done(b.id); sent++; } catch (e) { console.error(e); failed++; }
   }
   return Response.json({ ok: true, sent, skipped, failed });

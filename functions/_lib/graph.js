@@ -1,4 +1,4 @@
-// Microsoft Graph with app-only credentials. Sends mail from and writes to the info@skripta.ba mailbox.
+// Microsoft Graph with app-only credentials. Calendar reads/writes use MAILBOX (info@skripta.ba). Mail is sent from MAIL_FROM (shared mailbox) if set, else MAILBOX.
 let cached = null;
 async function token(env) {
   if (cached && cached.exp > Date.now() + 60000) return cached.v;
@@ -9,17 +9,18 @@ async function token(env) {
   if (!r.ok) throw new Error('Graph token ' + r.status);
   const j = await r.json(); cached = { v: j.access_token, exp: Date.now() + j.expires_in * 1000 }; return cached.v;
 }
-async function call(env, method, path, body) {
-  const r = await fetch('https://graph.microsoft.com/v1.0/users/' + encodeURIComponent(env.MAILBOX) + path, {
+async function call(env, method, path, body, user = env.MAILBOX) {
+  const r = await fetch('https://graph.microsoft.com/v1.0/users/' + encodeURIComponent(user) + path, {
     method, headers: { authorization: 'Bearer ' + await token(env), 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined
   });
   if (!r.ok && !(method === 'DELETE' && r.status === 404)) throw new Error(`Graph ${method} ${path} ${r.status} ${await r.text()}`);
   return r.status === 204 ? null : r.headers.get('content-type')?.includes('json') ? r.json() : null;
 }
 export function sendMail(env, { to, subject, html, replyTo }) {
+  if (!replyTo && env.MAIL_FROM && env.MAIL_FROM !== env.MAILBOX) replyTo = env.MAILBOX; // odgovori gostiju idu na info@
   // TEST_MODE: nothing reaches real guests. Everything goes to TEST_RECIPIENT with a [TEST] prefix.
   if (env.TEST_MODE) { html = `<p style="color:#B5542F"><b>[TEST] originalni primalac: ${to}</b></p>` + html; subject = '[TEST] ' + subject; to = env.TEST_RECIPIENT || env.MAILBOX; }
-  return call(env, 'POST', '/sendMail', { message: { subject, body: { contentType: 'HTML', content: html }, toRecipients: [{ emailAddress: { address: to } }], ...(replyTo ? { replyTo: [{ emailAddress: { address: replyTo } }] } : {}) }, saveToSentItems: true });
+  return call(env, 'POST', '/sendMail', { message: { subject, body: { contentType: 'HTML', content: html }, toRecipients: [{ emailAddress: { address: to } }], ...(replyTo ? { replyTo: [{ emailAddress: { address: replyTo } }] } : {}) }, saveToSentItems: true }, env.MAIL_FROM || env.MAILBOX);
 }
 const local = (date, min) => `${date}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}:00`;
 export async function createEvent(env, { subject, html, date, startMin, endMin }) {
