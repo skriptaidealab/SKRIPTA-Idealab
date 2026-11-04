@@ -71,12 +71,16 @@
   }
   function message(text) { el.dayMsg.textContent = text; el.dayMsg.hidden = false; el.slots.innerHTML = ''; el.slotHint.textContent = ''; state.start = null; update(); }
 
+  // Saturdays after this date are closed for now (same rule as functions/_lib/rules.js).
+  var SAT_CLOSED_AFTER = '2026-11-08';
+  function closedDay(d) { return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER); }
   function renderSlots() {
     var v = el.date.value;
     el.dayMsg.hidden = true;
     if (!v) return;
     var d = parseDate(v);
     if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do subota).');
+    if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
       if (demoWholeDay(v)) return message('Taj dan je cijeli prostor rezervisan za grupu (primjer povezanosti s najmom cijelog prostora).');
@@ -157,7 +161,7 @@
   /* ---------- init ---------- */
   var d0 = new Date(), min = new Date(d0);
   if (d0.getHours() >= 19) min.setDate(min.getDate() + 1);
-  if (min.getDay() === 0) min.setDate(min.getDate() + 1);
+  while (closedDay(min)) min.setDate(min.getDate() + 1);
   var max = new Date(d0); max.setDate(max.getDate() + 5);
   var openUntil = parseDate('2026-11-14'); if (openUntil > max) max = openUntil;
   el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
@@ -171,7 +175,7 @@
     for (; d <= end; d.setDate(d.getDate() + 1)) {
       var v = iso(d), b = document.createElement('button');
       b.type = 'button'; b.className = 'day'; b.dataset.d = v;
-      b.disabled = d.getDay() === 0;
+      b.disabled = closedDay(d);
       b.setAttribute('aria-pressed', String(el.date.value === v));
       b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : '');
       box.appendChild(b);
@@ -185,7 +189,7 @@
   }
 
   var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
-  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && parseDate(dm[1]).getDay() !== 0) el.date.value = dm[1];
+  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && !closedDay(parseDate(dm[1]))) el.date.value = dm[1];
   drawDays();
 
   function setMode(live) {

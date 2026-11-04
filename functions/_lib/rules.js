@@ -12,6 +12,8 @@ export const isFree = (date) => FREE_DATES.includes(date);
 // Frozen windows: no NEW bookings can touch these (minutes from midnight). Existing confirmed bookings stay;
 // pending requests can still be confirmed. Remove an entry to reopen the window.
 export const FROZEN = { '2026-11-04': [[11 * 60, 14 * 60]] };
+// Saturdays after this date are closed for now (booking.js has the same constant). Remove to reopen.
+export const SAT_CLOSED_AFTER = '2026-11-08';
 export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
@@ -44,6 +46,7 @@ export function checkQuery(q) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';
   const d = dayNum(q.date), n = dayNum(sarajevoNow().date);
   if (new Date(d * 86400000).getUTCDay() === 0) return 'Nedjeljom ne radimo.';
+  if (new Date(d * 86400000).getUTCDay() === 6 && q.date > SAT_CLOSED_AFTER) return 'Subotom zasad ne radimo.';
   if (d < n || d > Math.max(n + MAX_DAYS, dayNum(OPEN_UNTIL))) return 'Datum je van raspona.';
   if (q.zone === 'lounge' && !CAPACITY.lounge) return 'Lounge zona još nije dostupna za online rezervaciju.';
   return null;
