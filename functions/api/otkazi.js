@@ -1,4 +1,4 @@
-import { NAMES, fmt, sarajevoNow } from '../_lib/rules.js';
+import { NAMES, fmt, sarajevoNow, zoneLabel } from '../_lib/rules.js';
 import { page, esc, readToken } from '../_lib/util.js';
 import { sendMail, deleteEvent } from '../_lib/graph.js';
 import { mail, C } from '../_lib/mail.js';
@@ -26,6 +26,6 @@ export async function onRequestPost({ request, env }) {
   const pend = b.status === 'pending';
   await env.DB.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").bind(b.id).run();
   if (b.event_id) { try { await deleteEvent(env, b.event_id); } catch (e) { console.error(e); } }
-  await sendMail(env, { to: env.MAILBOX, subject: `${pend ? 'Zahtjev otkazan' : 'Otkazano'}: ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: pend ? 'Otkazano' : 'Otkazano', tone: 'no', accent: C.rose, title: pend ? 'Gost je otkazao zahtjev.' : 'Gost je otkazao.', rows: [['Zona', NAMES[b.zone]], ['Termin', whenOf(b)], ['Ime', b.name], ['Email', b.email]], note: pend ? 'Nije potrebna nikakva radnja. Dugmad u ranijem mailu s ovim zahtjevom više ne rade.' : (b.event_id ? 'Događaj je uklonjen iz kalendara.' : '') }) });
+  await sendMail(env, { to: env.MAILBOX, subject: `${pend ? 'Zahtjev otkazan' : 'Otkazano'}: ${NAMES[b.zone]}, ${whenOf(b)}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: pend ? 'Otkazano' : 'Otkazano', tone: 'no', accent: C.rose, title: pend ? 'Gost je otkazao zahtjev.' : 'Gost je otkazao.', rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Ime', b.name], ['Email', b.email]], note: pend ? 'Nije potrebna nikakva radnja. Dugmad u ranijem mailu s ovim zahtjevom više ne rade.' : (b.event_id ? 'Događaj je uklonjen iz kalendara.' : '') }) });
   return page(pend ? 'Zahtjev otkazan' : 'Otkazano', pend ? '<h1>Zahtjev otkazan</h1><p>Hvala što si nam javio/la.</p>' : '<h1>Rezervacija otkazana</h1><p>Hvala što si nam javio/la.</p>');
 }

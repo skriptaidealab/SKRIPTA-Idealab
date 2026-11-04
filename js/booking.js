@@ -25,7 +25,7 @@
   function hash(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0); }
   function parseDate(v) { var p = v.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function persons() { return state.zone === 'cafe' ? +el.persons.value : 1; }
+  function persons() { return +el.persons.value || 1; }
 
   /* ---------- demo availability (simulated) ---------- */
   function demoWholeDay(v) { return hash('full' + v) % 11 === 0; }
@@ -119,7 +119,7 @@
 
   root.addEventListener('change', function (e) {
     var t = e.target;
-    if (t.name === 'zone') { state.zone = t.value; el.personsWrap.hidden = state.zone !== 'cafe'; renderSlots(); }
+    if (t.name === 'zone') { state.zone = t.value; renderSlots(); }
     else if (t.name === 'dur') { state.dur = +t.value; renderSlots(); }
     else if (t === el.date || t === el.persons) renderSlots();
   });
@@ -165,7 +165,6 @@
   var max = new Date(d0); max.setDate(max.getDate() + 5);
   var openUntil = parseDate('2026-11-14'); if (openUntil > max) max = openUntil;
   el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
-  el.personsWrap.hidden = true;
   /* ---------- day picker: Sundays are shown but cannot be clicked ---------- */
   var WD = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
   function drawDays() {

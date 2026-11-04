@@ -26,6 +26,8 @@ export const PRICES = {
   lounge: { 1: 5, 2: 8,  4: 13, 8: 18 }
 };
 export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
+export const MAX_PERSONS = 4; // most people in one booking
+export const zoneLabel = (b) => NAMES[b.zone] + (b.persons > 1 ? `, ${b.persons} osobe` : '');
 // Seats per zone (confirmed by owner). A slot is free while confirmed bookings overlapping it use fewer seats than this.
 export const CAPACITY = { ind: 15, lounge: 9 };
 
@@ -43,7 +45,7 @@ export const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) 
 export function checkQuery(q) {
   if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
   if (![1, 2, 4, 8].includes(q.dur)) return 'Nepoznato trajanje.';
-  const maxP = 1, minP = 1;
+  const maxP = MAX_PERSONS, minP = 1;
   if (!Number.isInteger(q.persons) || q.persons < minP || q.persons > maxP) return 'Neispravan broj osoba.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';
   const d = dayNum(q.date), n = dayNum(sarajevoNow().date);

@@ -1,5 +1,5 @@
 // "Add to calendar" helpers for confirmation mails: a Google Calendar link and an .ics file (Apple, Outlook, others).
-import { NAMES, fmt } from './rules.js';
+import { NAMES, fmt, zoneLabel } from './rules.js';
 
 const PLACE = 'SKRIPTA IdeaLab, Emerika Bluma 9, Sarajevo';
 const TZ = 'Europe/Sarajevo';
@@ -18,7 +18,7 @@ function utcStamp(date, min) {
   return new Date(utc).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 const title = (b) => `SKRIPTA Coffice: ${NAMES[b.zone]}`;
-const details = (b) => `${NAMES[b.zone]}, ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}. Kafa ili čaj su besplatni. Pitanja: info@skripta.ba`;
+const details = (b) => `${zoneLabel(b)}, ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}. Kafa ili čaj su besplatni. Pitanja: info@skripta.ba`;
 
 export function googleUrl(b) {
   const q = new URLSearchParams({ action: 'TEMPLATE', text: title(b), dates: `${local(b.date, b.start_min)}/${local(b.date, b.start_min + b.dur_h * 60)}`, ctz: TZ, details: details(b), location: PLACE });

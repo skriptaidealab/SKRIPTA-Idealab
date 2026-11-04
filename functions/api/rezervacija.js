@@ -1,4 +1,4 @@
-import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
-  const rows = [['Zona', NAMES[q.zone]], ['Termin', when], ['Ukupno', priceText(sum)]];
+  const rows = [['Zona', zoneLabel(q)], ['Termin', when], ['Ukupno', priceText(sum)]];
   const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   const withdraw = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, id, 'otkazi')}`;
   try {
