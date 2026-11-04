@@ -3,11 +3,9 @@
 import { NAMES, fmt, PRICES, zoneLabel } from '../_lib/rules.js';
 import { esc, readToken, niceName } from '../_lib/util.js';
 import { makeToken } from '../_lib/util.js';
-import qrcode from '../_lib/qr.js';
 
 const COL = { ind: '#5A837B', lounge: '#DCA402' };
 const km = (n) => `${n} KM`;
-const qrSvg = (url) => { const q = qrcode(0, 'M'); q.addData(url); q.make(); return q.createSvgTag({ cellSize: 1, margin: 0, scalable: true }); };
 
 const CSS = `@page{size:297mm 210mm;margin:0}*{box-sizing:border-box;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:Helvetica,"Helvetica Neue",Arial,"Liberation Sans",sans-serif;color:#1A1A1A;background:#ddd}
@@ -55,7 +53,7 @@ const BACK = `<div class="a5 back"><div class="circ b"></div>
 <p class="sub flex">Za FLEX pakete piši nam na <b>info@skripta.ba</b></p>
 <div class="foot"><span>Sve cijene su u KM i uključuju PDV. Kafa ili čaj su uključeni.</span></div></div>`;
 
-function front(env, b, qr, date) {
+function front(env, b, date) {
   const end = b.start_min + b.dur_h * 60;
   return `<div class="a5"><div class="circ" style="background:${COL[b.zone] || COL.ind}"></div>
 <div class="top"><b>SKRIPTA Coffice</b><span>skripta.ba</span></div>
@@ -64,8 +62,6 @@ function front(env, b, qr, date) {
 <div class="time"><span>${fmt(b.start_min)}</span><span class="do">do ${fmt(end)}</span></div>
 <div class="grid"><div><i>Zona</i><b>${esc(zoneLabel(b))}</b></div><div><i>Datum</i><b>${date}</b></div><div><i>Trajanje</i><b>${b.dur_h} h</b></div><div><i>Za platiti</i><b>${b.total === 0 ? 'Besplatno' : km(b.total)}</b></div></div>
 <div class="wifi"><div><i>Wi-Fi mreža</i><b>${esc(env.WIFI_SSID || 'SKRIPTA GUEST')}</b></div><div><i>Šifra</i><b>${esc(env.WIFI_PASS)}</b></div></div>
-<div class="qrtxt"><b>Skeniraj kad stigneš.</b>Tako potvrđuješ dolazak, a nakon termina ti šaljemo kratku zahvalu.</div>
-<div class="qr">${qr}Check-in</div>
 <div class="foot"><span class="sl">Kafa. Laptop. COFFICE.</span><span>Cjenovnik na poleđini</span></div></div>`;
 }
 
@@ -81,7 +77,7 @@ export async function onRequestGet({ request, env }) {
   if (ime) rows = rows.filter((b) => String(b.name).toLocaleLowerCase('bs').includes(ime));
   const date = d.split('-').reverse().join('.');
   const cards = [];
-  for (const b of rows) cards.push(front(env, b, qrSvg(`${env.SITE_URL}/api/checkin?t=${await makeToken(env, b.id, 'checkin')}`), date));
+  for (const b of rows) cards.push(front(env, b, date));
   const pages = [];
   for (let i = 0; i < cards.length; i += 2) {
     pages.push(`<section>${cards[i]}<div class="cut"></div>${cards[i + 1] || '<div class="a5"></div>'}</section>`);
