@@ -15,6 +15,7 @@
     personsWrap: $('#b-persons-wrap'), dayMsg: $('#b-day-msg'),
     sZone: $('#s-zone'), sWhen: $('#s-when'), sPeople: $('#s-people'), sDur: $('#s-dur'),
     total: $('#s-total'), totalSub: $('#s-total-sub'), btn: $('#b-confirm'),
+    need: $('#b-need'), pOut: $('#b-persons-out'), minus: $('#b-minus'), plus: $('#b-plus'),
     name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), news: $('#b-news'), out: $('#b-out'), err: $('#b-err')
   };
   var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0 };
@@ -99,6 +100,65 @@
       .catch(function () { if (seq === state.seq) message('Ne možemo učitati termine. Pokušaj ponovo ili nam piši na info@skripta.ba.'); });
   }
 
+  /* ---------- form fields: inline validation ---------- */
+  var TYPOS = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmail.co': 'gmail.com', 'gmail.con': 'gmail.com', 'gnail.com': 'gmail.com', 'gamil.com': 'gmail.com',
+    'hotmial.com': 'hotmail.com', 'hotmail.co': 'hotmail.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'outlok.com': 'outlook.com', 'outllook.com': 'outlook.com' };
+  var CHECKS = {
+    name: function (v) { return v.split(/\s+/).filter(Boolean).length < 2 ? 'Upiši ime i prezime.' : ''; },
+    email: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Upiši ispravan email, na njega šaljemo potvrdu.'; },
+    phone: function (v) { var d = v.replace(/\D/g, ''); return /^\+?[\d\s().\/-]{6,}$/.test(v) && d.length >= 8 && d.length <= 15 ? '' : 'Upiši broj telefona, npr. +387 62 123 456.'; }
+  };
+  function fieldErr(key) { return root.querySelector('#e-' + key); }
+  function showErr(key, msg, html) {
+    var f = el[key], e = fieldErr(key); if (!f || !e) return;
+    if (msg) { if (html) e.innerHTML = msg; else e.textContent = msg; e.hidden = false; f.setAttribute('aria-invalid', 'true'); f.classList.add('bad'); }
+    else { e.hidden = true; e.textContent = ''; f.removeAttribute('aria-invalid'); f.classList.remove('bad'); }
+  }
+  function validate(key, loud) {
+    var v = el[key].value.trim(), msg = CHECKS[key](v);
+    if (key === 'email' && !msg) {
+      var dom = v.slice(v.lastIndexOf('@') + 1).toLowerCase();
+      if (TYPOS[dom]) { showErr(key, 'Misliš li <button type="button" class="fix" data-fix="' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '">' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '</button>?', true); return ''; }
+    }
+    if (!v && !loud) { showErr(key, ''); return msg; }
+    showErr(key, msg);
+    return msg;
+  }
+  ['name', 'email', 'phone'].forEach(function (k) {
+    el[k].addEventListener('blur', function () { validate(k, false); needUpdate(); });
+    el[k].addEventListener('input', function () { if (el[k].classList.contains('bad')) validate(k, true); needUpdate(); });
+  });
+  root.addEventListener('click', function (e) {
+    var fx = e.target.closest && e.target.closest('.fix');
+    if (fx) { el.email.value = fx.dataset.fix; showErr('email', ''); needUpdate(); el.email.focus(); }
+  });
+  function needUpdate() {
+    if (!el.need) return;
+    var miss = [];
+    if (state.start === null) miss.push('vrijeme početka');
+    if (CHECKS.name(el.name.value.trim())) miss.push('ime i prezime');
+    if (CHECKS.email(el.email.value.trim())) miss.push('email');
+    if (CHECKS.phone(el.phone.value.trim())) miss.push('telefon');
+    el.need.hidden = miss.length === 0;
+    el.need.textContent = miss.length ? 'Još fali: ' + miss.join(', ') + '.' : '';
+  }
+
+  /* ---------- persons stepper (keeps the hidden select in sync) ---------- */
+  function setPersons(n) {
+    n = Math.max(1, Math.min(4, n));
+    if (+el.persons.value === n) { syncPersons(); return; }
+    el.persons.value = String(n);
+    el.persons.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function syncPersons() {
+    var n = persons();
+    if (el.pOut) el.pOut.textContent = n + (n === 1 ? ' osoba' : ' osobe');
+    if (el.minus) el.minus.disabled = n <= 1;
+    if (el.plus) el.plus.disabled = n >= 4;
+  }
+  if (el.minus) el.minus.addEventListener('click', function () { setPersons(persons() - 1); });
+  if (el.plus) el.plus.addEventListener('click', function () { setPersons(persons() + 1); });
+
   var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06'];
   function isFree() { return FREE_DATES.indexOf(el.date.value) >= 0; }
   function update() {
@@ -114,6 +174,7 @@
     if (isFree()) el.totalSub.textContent = 'Jedva čekamo da dođeš!' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     else el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
+    syncPersons(); needUpdate();
     el.out.hidden = true; el.err.hidden = true;
   }
 
@@ -134,10 +195,8 @@
   el.btn.addEventListener('click', function () {
     if (state.start === null) return;
     var name = el.name.value.trim(), email = el.email.value.trim(), phone = el.phone.value.trim();
-    if (name.split(/\s+/).length < 2) return fail('Upiši ime i prezime.', el.name);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Upiši ispravan email, na njega šaljemo potvrdu.', el.email);
-    var digits = phone.replace(/\D/g, '');
-    if (!/^\+?[\d\s().\/-]{6,}$/.test(phone) || digits.length < 8 || digits.length > 15) return fail('Upiši broj telefona, javljamo se samo ako zatreba.', el.phone);
+    var bad = ['name', 'email', 'phone'].filter(function (k) { return validate(k, true); });
+    if (bad.length) { el[bad[0]].focus(); return fail(bad.length > 1 ? 'Dopuni označena polja.' : fieldErr(bad[0]).textContent); }
     el.err.hidden = true;
     var n = persons(), total = isFree() ? 0 : PRICES[state.zone][state.dur] * n;
     if (!state.live) {
@@ -153,7 +212,8 @@
         el.btn.textContent = 'Pošalji zahtjev';
         if (!res.ok) { el.btn.disabled = false; if (res.j && /slobodan/.test(res.j.error || '')) renderSlots(); return fail((res.j && res.j.error) || 'Slanje nije uspjelo.'); }
         el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + (total === 0 ? 'besplatno. Jedva čekamo da dođeš!' : 'ukupno ' + total + ' KM.') + '</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
-        el.out.hidden = false; el.btn.hidden = true;
+        el.out.hidden = false; el.btn.hidden = true; if (el.need) el.need.hidden = true;
+        try { el.out.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
       })
       .catch(function () { el.btn.disabled = false; el.btn.textContent = 'Pošalji zahtjev'; fail('Slanje nije uspjelo. Piši nam na info@skripta.ba.'); });
   });

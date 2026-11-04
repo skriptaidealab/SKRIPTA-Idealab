@@ -21,7 +21,7 @@
   <meta property="og:url" content="https://www.skripta.ba/coffice.html">
   <meta property="og:image" content="https://www.skripta.ba/images/og-coffice.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/style.css?v=20261104b">
+  <link rel="stylesheet" href="css/style.css?v=20261104c">
   <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -263,43 +263,62 @@
         <div class="book-flag" id="b-flag"><b>DEMO</b><span>Demonstracijski kalendar. Termini su simulirani i zahtjev se ne šalje dok se ne poveže pravi sistem.</span></div>
         <div class="book-grid">
           <div class="book-form">
-            <div class="fld"><span class="lab" id="l-zone">1. Zona</span>
-              <div class="seg zone-seg" role="radiogroup" aria-labelledby="l-zone">
-                <label><input type="radio" name="zone" value="ind" checked><span>Quiet<small>od 7 KM</small></span></label>
-                <label><input type="radio" name="zone" value="lounge"><span>Lounge<small>od 5 KM</small></span></label>
+            <section class="bstep">
+              <header class="bstep-h"><span class="bstep-n">1</span><div><h3>Zona i broj osoba</h3></div></header>
+              <div class="fld"><span class="lab" id="l-zone">Zona</span>
+                <div class="seg zone-seg" role="radiogroup" aria-labelledby="l-zone">
+                  <label><input type="radio" name="zone" value="ind" checked><span>Quiet<small>od 7 KM</small></span></label>
+                  <label><input type="radio" name="zone" value="lounge"><span>Lounge<small>od 5 KM</small></span></label>
+                </div>
               </div>
-            </div>
-            <div class="fld" id="b-persons-wrap"><label class="lab" for="b-persons">Broj osoba</label>
-              <select id="b-persons"><option value="1">1 osoba</option><option value="2">2 osobe</option><option value="3">3 osobe</option><option value="4">4 osobe</option></select>
-              <p class="hint">Cijena je po osobi. Rezervišeš za cijelu grupu, svi sjede u istoj zoni.</p>
-            </div>
-            <div class="fld"><span class="lab" id="l-date">2. Datum</span>
-              <input type="hidden" id="b-date">
-              <div id="b-days" class="days" role="group" aria-labelledby="l-date"></div>
-            </div>
-            <div class="two">
+              <div class="fld" id="b-persons-wrap"><span class="lab" id="l-persons">Broj osoba</span>
+                <div class="stepper" role="group" aria-labelledby="l-persons">
+                  <button type="button" class="stp" id="b-minus" aria-label="Manje osoba">-</button>
+                  <output id="b-persons-out" for="b-persons" aria-live="polite">1 osoba</output>
+                  <button type="button" class="stp" id="b-plus" aria-label="Više osoba">+</button>
+                </div>
+                <select id="b-persons" hidden tabindex="-1" aria-hidden="true"><option value="1">1 osoba</option><option value="2">2 osobe</option><option value="3">3 osobe</option><option value="4">4 osobe</option></select>
+                <p class="hint">Cijena je po osobi. Cijela grupa sjedi u istoj zoni. Najviše 4 osobe.</p>
+              </div>
+            </section>
+
+            <section class="bstep">
+              <header class="bstep-h"><span class="bstep-n">2</span><div><h3>Kada dolaziš</h3></div></header>
+              <div class="fld"><span class="lab" id="l-date">Datum</span>
+                <input type="hidden" id="b-date">
+                <div id="b-days" class="days" role="group" aria-labelledby="l-date"></div>
+              </div>
               <div class="fld"><span class="lab" id="l-dur">Trajanje</span>
-                <div class="seg" role="radiogroup" aria-labelledby="l-dur" style="grid-template-columns:1fr 1fr;">
+                <div class="seg dur-seg" role="radiogroup" aria-labelledby="l-dur">
                   <label><input type="radio" name="dur" value="1" checked><span>1 sat</span></label>
                   <label><input type="radio" name="dur" value="2"><span>2 sata</span></label>
                   <label><input type="radio" name="dur" value="4"><span>4 sata</span></label>
                   <label><input type="radio" name="dur" value="8"><span>8 sati<small>dnevna tarifa</small></span></label>
                 </div>
               </div>
-            </div>
-            <div class="fld"><span class="lab">3. Vrijeme početka</span>
-              <p id="b-day-msg" class="hint warn" role="status" hidden></p>
-              <div id="b-slots" class="slots" aria-live="polite"></div>
-              <p id="b-slot-hint" class="hint"></p>
-            </div>
-            <div class="two">
-              <div class="fld"><label class="lab" for="b-name">4. Ime i prezime</label><input type="text" id="b-name" autocomplete="name" placeholder="Ime Prezime" required></div>
-              <div class="fld"><label class="lab" for="b-email">Email (za potvrdu)</label><input type="email" id="b-email" autocomplete="email"></div>
-            </div>
-            <div class="fld"><label class="lab" for="b-phone">Telefon</label><input type="tel" id="b-phone" autocomplete="tel" required placeholder="+387 6x xxx xxx"></div>
-            <div class="fld"><label class="news-opt"><input type="checkbox" id="b-news" checked> <span>Šalji mi novosti SKRIPTE emailom. Možeš odznačiti ovo polje, a odjaviti se možeš i u svakoj poruci.</span></label></div>
-            <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Web<input type="text" id="b-web" tabindex="-1" autocomplete="off"></label></div>
-            </div>
+              <div class="fld"><span class="lab">Vrijeme početka</span>
+                <p id="b-day-msg" class="hint warn" role="status" hidden></p>
+                <div id="b-slots" class="slots" aria-live="polite"></div>
+                <p id="b-slot-hint" class="hint"></p>
+              </div>
+            </section>
+
+            <section class="bstep">
+              <header class="bstep-h"><span class="bstep-n">3</span><div><h3>Tvoji podaci</h3><p>Sva tri polja su obavezna. Email koristimo za potvrdu, a telefon samo ako zatreba.</p></div></header>
+              <div class="fld"><label class="lab" for="b-name">Ime i prezime</label>
+                <input type="text" id="b-name" autocomplete="name" placeholder="Ime Prezime" required aria-describedby="e-name">
+                <p class="fld-err" id="e-name" role="alert" hidden></p></div>
+              <div class="two">
+                <div class="fld"><label class="lab" for="b-email">Email</label>
+                  <input type="email" id="b-email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="ime@primjer.ba" required aria-describedby="e-email">
+                  <p class="fld-err" id="e-email" role="alert" hidden></p></div>
+                <div class="fld"><label class="lab" for="b-phone">Telefon</label>
+                  <input type="tel" id="b-phone" autocomplete="tel" inputmode="tel" placeholder="+387 6x xxx xxx" required aria-describedby="e-phone">
+                  <p class="fld-err" id="e-phone" role="alert" hidden></p></div>
+              </div>
+              <div class="fld"><label class="news-opt"><input type="checkbox" id="b-news" checked> <span>Šalji mi novosti SKRIPTE emailom. Možeš odznačiti ovo polje, a odjaviti se možeš i u svakoj poruci.</span></label></div>
+              <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Web<input type="text" id="b-web" tabindex="-1" autocomplete="off"></label></div>
+            </section>
           </div>
           <aside class="book-side" aria-live="polite">
             <h3>Tvoja rezervacija</h3>
@@ -312,6 +331,7 @@
             <div class="total" id="s-total">7 KM</div>
             <p class="total-sub" id="s-total-sub"></p>
             <p id="b-err" class="hint warn" hidden></p>
+            <p class="need" id="b-need" aria-live="polite" hidden></p>
             <button type="button" class="btn btn-solid" id="b-confirm" disabled>Prikaži primjer</button>
             <div class="confirm" id="b-out" hidden></div>
           </aside>
@@ -427,7 +447,7 @@
       </div>
     </div>
   </footer>
-  <script src="js/main.js?v=20261104b"></script>
-  <script src="js/booking.js?v=20261104b"></script>
+  <script src="js/main.js?v=20261104c"></script>
+  <script src="js/booking.js?v=20261104c"></script>
 </body>
 </html>
