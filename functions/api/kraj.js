@@ -32,6 +32,7 @@ export async function onRequestPost({ request, env }) {
   for (const b of rows) {
     const endAbs = abs(b.date, b.start_min + b.dur_h * 60), left = endAbs - nowAbs;
     if (!b.checked_in_at) { if (left <= 0) await done(b.id); continue; }  // never scanned the QR: no e-mail
+    if (!isEmail(b.email)) { await done(b.id); continue; }                // walk-in guests have no e-mail address
     const departed = !!b.left_at;                                         // marked as left in the occupancy tracker
     if (!departed && left > 0) continue;                                  // still inside the slot
     if (!departed && left < -LATE) { await done(b.id); skipped++; continue; } // slot ended long ago (e.g. cron was down): do not send a stale thank-you
