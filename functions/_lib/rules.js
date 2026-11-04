@@ -14,7 +14,9 @@ export const isFree = (date) => FREE_DATES.includes(date);
 export const FROZEN = { '2026-11-04': [[11 * 60, 14 * 60]] };
 // Saturdays after this date are closed for now (booking.js has the same constant). Remove to reopen.
 export const SAT_CLOSED_AFTER = '2026-11-08';
-export const hoursFor = (date) => SPECIAL_HOURS[date] || [OPEN, CLOSE];
+// Saturdays: bookings may only fall between 10:00 and 15:00. Existing confirmed bookings outside this window stay valid.
+export const SAT_HOURS = [10 * 60, 15 * 60];
+export const hoursFor = (date) => SPECIAL_HOURS[date] || (new Date(dayNum(date) * 86400000).getUTCDay() === 6 ? SAT_HOURS : [OPEN, CLOSE]);
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
 export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Sat 9-14.11.)
