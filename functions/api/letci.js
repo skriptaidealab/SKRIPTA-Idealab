@@ -9,7 +9,7 @@ const COL = { ind: '#5A837B', lounge: '#DCA402' };
 const km = (n) => `${n} KM`;
 const qrSvg = (url) => { const q = qrcode(0, 'M'); q.addData(url); q.make(); return q.createSvgTag({ cellSize: 1, margin: 0, scalable: true }); };
 
-const CSS = `@page{size:297mm 210mm;margin:0}*{box-sizing:border-box;margin:0}
+const CSS = `@page{size:297mm 210mm;margin:0}*{box-sizing:border-box;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:Helvetica,"Helvetica Neue",Arial,"Liberation Sans",sans-serif;color:#1A1A1A;background:#ddd}
 .bar{position:sticky;top:0;z-index:9;background:#1A1A1A;color:#fff;padding:10px 16px;font-size:14px;display:flex;gap:16px;align-items:center}
 .bar button{font:inherit;padding:6px 14px;border:0;background:#DCA402;font-weight:700;cursor:pointer}
