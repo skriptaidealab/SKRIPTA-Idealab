@@ -27,7 +27,7 @@ export const PRICES = {
 };
 export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
 // Seats per zone (confirmed by owner). A slot is free while confirmed bookings overlapping it use fewer seats than this.
-export const CAPACITY = { ind: 15, lounge: 11 };
+export const CAPACITY = { ind: 15, lounge: 9 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 export const total = (zone, dur, persons, date) => (isFree(date) ? 0 : PRICES[zone][dur] * persons);
