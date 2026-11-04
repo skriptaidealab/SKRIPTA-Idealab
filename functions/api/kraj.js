@@ -10,7 +10,7 @@ const LEAD = 15;
 
 async function send(env, b, test = false) {
   const end = fmt(b.start_min + b.dur_h * 60);
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti COFFICE-u!', lead: 'Tvoj termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ako želiš produžiti boravak, javi se našem osoblju.<br><br>Hvala ti i vidimo se opet!' }) });
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Još 15 minuta, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti COFFICE-u!', lead: 'Tvoj termin ističe za 15 minuta.', rows: [['Zona', NAMES[b.zone]], ['Završetak', end]], note: 'Ako želiš produžiti boravak, javi se našem osoblju.<br><br>Hvala ti i vidimo se opet!<br><br><b style="color:#1A1A1A">Prije nego kreneš:</b> imaš li tri minute da nam kažeš šta misliš o prostoru? <a href="https://forms.cloud.microsoft/e/22pC0hMy1u" style="color:#1A1A1A;font-weight:700">Ispuni kratku anketu</a>. Anonimna je i pomaže nam da ga uredimo po tvojoj mjeri.' }) });
 }
 
 export async function onRequestPost({ request, env }) {
