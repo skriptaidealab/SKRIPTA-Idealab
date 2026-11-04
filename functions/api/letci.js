@@ -76,7 +76,9 @@ export async function onRequestGet({ request, env }) {
   if (!k || k.id !== 'letci-' + d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Response('Link nije ispravan', { status: 400, headers: hdr });
   if (!env.WIFI_PASS) return new Response('Nedostaje varijabla WIFI_PASS u Cloudflare postavkama.', { status: 500, headers: hdr });
 
-  const rows = (await env.DB.prepare("SELECT * FROM bookings WHERE date = ? AND status = 'confirmed' ORDER BY start_min, name").bind(d).all()).results || [];
+  let rows = (await env.DB.prepare("SELECT * FROM bookings WHERE date = ? AND status = 'confirmed' ORDER BY start_min, name").bind(d).all()).results || [];
+  const ime = (u.searchParams.get('ime') || '').trim().toLocaleLowerCase('bs');
+  if (ime) rows = rows.filter((b) => String(b.name).toLocaleLowerCase('bs').includes(ime));
   const date = d.split('-').reverse().join('.');
   const cards = [];
   for (const b of rows) cards.push(front(env, b, qrSvg(`${env.SITE_URL}/api/checkin?t=${await makeToken(env, b.id, 'checkin')}`), date));
