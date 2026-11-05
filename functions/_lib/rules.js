@@ -3,8 +3,8 @@ export const OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30; // Mon-Fri 09:00 to
 // Dates with shortened opening hours (minutes from midnight): [open, close].
 export const SPECIAL_HOURS = {
   '2026-11-04': [10 * 60, 21 * 60],
-  '2026-11-05': [10 * 60, 21 * 60],
-  '2026-11-06': [10 * 60, 21 * 60]
+  '2026-11-05': [10 * 60, 18 * 60 + 30], // closed after 18:30 (new bookings only)
+  '2026-11-06': [10 * 60, 18 * 60 + 30]
 };
 // Dates when booking is free of charge (opening days).
 export const FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
