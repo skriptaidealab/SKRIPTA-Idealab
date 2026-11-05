@@ -1,5 +1,5 @@
 import { checkQuery, freeStarts, loadDay, tableFor, priceText, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
-import { page, esc, makeToken, readToken } from '../_lib/util.js';
+import { page, esc, clean, makeToken, readToken } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { subscribeIfOptedIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../_lib/graph.js';
@@ -8,6 +8,24 @@ import { googleUrl } from '../_lib/cal.js';
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
 const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
 const summary = (b) => `<dl><dt>Zona</dt><dd>${esc(NAMES[b.zone])}, ${b.persons} ${b.persons === 1 ? 'osoba' : 'osobe'}</dd><dt>Termin</dt><dd>${esc(whenOf(b))}</dd><dt>Ukupno</dt><dd>${priceText(b.total)}</dd><dt>Gost</dt><dd>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}</dd></dl>`;
+
+// Reasons the owner can pick when she rejects a request or cancels a confirmed booking. The text goes to the guest in the e-mail.
+const REASONS = {
+  odbij: [['zauzeto', 'Taj termin je već zauzet.'], ['zatvoreno', 'Prostor je tada zatvoren ili rezervisan za događaj.'], ['popunjeno', 'Odabrana zona je u tom terminu popunjena.']],
+  'otkazi-mi': [['zatvoreno', 'Prostor je tog dana zatvoren ili rezervisan za događaj.'], ['tehnicki', 'Imamo tehnički problem u prostoru.'], ['preklapanje', 'Došlo je do preklapanja termina.']]
+};
+function reasonForm(t, action, label, { err = '', sel = '', text = '' } = {}) {
+  const opts = REASONS[action].concat([['drugo', 'Drugo (upiši razlog ispod)']]).map(([k, v]) => `<label class="opt"><input type="radio" name="razlog" value="${k}"${sel === k ? ' checked' : ''}><span>${esc(v)}</span></label>`).join('');
+  return `<form method="post"><input type="hidden" name="t" value="${esc(t)}"><fieldset><legend>Razlog (gost ga dobija u emailu)</legend>${opts}<textarea name="drugo" rows="3" maxlength="300" placeholder="Tvoj razlog ili dodatna napomena gostu">${esc(text)}</textarea></fieldset>${err ? `<p class="err">${esc(err)}</p>` : ''}<button>${esc(label)}</button></form>`;
+}
+// Preset (optionally plus a note), or the custom text when "Drugo" is chosen. null when nothing usable was given.
+function pickReason(action, f) {
+  const key = String(f.get('razlog') || ''), text = clean(f.get('drugo'), 300);
+  const preset = (REASONS[action].find(([k]) => k === key) || [])[1];
+  if (preset) return { key, text: preset + (text ? ' ' + text : '') };
+  if (text) return { key: 'drugo', text };
+  return null;
+}
 
 // GET only shows a page. Mail scanners that pre-open links therefore cannot confirm anything.
 export async function onRequestGet({ request, env }) {
@@ -18,15 +36,16 @@ export async function onRequestGet({ request, env }) {
   if (!b) return page('Nije pronađeno', '<h1>Rezervacija nije pronađena</h1>', 404);
   if (k.action === 'otkazi-mi') {
     if (!['confirmed', 'pending'].includes(b.status)) return page('Već obrađeno', `<h1>Rezervacija nije aktivna</h1><p>Status: ${esc(b.status)}</p>${summary(b)}`);
-    return page('Otkaži rezervaciju', `<h1>Otkazati rezervaciju gosta?</h1>${summary(b)}<p>Gost dobija email da je rezervacija otkazana s naše strane, a događaj se briše iz kalendara.</p><form method="post"><input type="hidden" name="t" value="${esc(t)}"><button>Otkaži rezervaciju</button></form>`);
+    return page('Otkaži rezervaciju', `<h1>Otkazati rezervaciju gosta?</h1>${summary(b)}<p>Gost dobija email da je rezervacija otkazana s naše strane, a događaj se briše iz kalendara.</p>${reasonForm(t, 'otkazi-mi', 'Otkaži rezervaciju')}`);
   }
   if (b.status !== 'pending') return page('Već obrađeno', `<h1>Već obrađeno</h1><p>Status: ${esc(b.status)}</p>${summary(b)}`);
   const label = k.action === 'potvrdi' ? 'Potvrdi i dodaj u kalendar' : 'Odbij zahtjev';
+  if (k.action === 'odbij') return page(label, `<h1>${esc(label)}</h1>${summary(b)}${reasonForm(t, 'odbij', label)}`);
   return page(label, `<h1>${esc(label)}</h1>${summary(b)}<form method="post"><input type="hidden" name="t" value="${esc(t)}"><button>${esc(label)}</button></form>`);
 }
 
 export async function onRequestPost({ request, env }) {
-  const t = (await request.formData()).get('t');
+  const f = await request.formData(), t = f.get('t');
   const k = await readToken(env, t, ['potvrdi', 'odbij', 'otkazi-mi']);
   if (!k) return page('Link nije ispravan', '<h1>Link nije ispravan</h1>', 400);
   const b = await load(env, k.id);
@@ -34,19 +53,23 @@ export async function onRequestPost({ request, env }) {
 
   if (k.action === 'otkazi-mi') {
     if (!['confirmed', 'pending'].includes(b.status)) return page('Već obrađeno', `<h1>Rezervacija nije aktivna</h1><p>Status: ${esc(b.status)}</p>`);
+    const why = pickReason('otkazi-mi', f);
+    if (!why) return page('Navedi razlog', `<h1>Navedi razlog otkazivanja</h1>${summary(b)}${reasonForm(t, 'otkazi-mi', 'Otkaži rezervaciju', { err: 'Odaberi razlog ili upiši svoj.' })}`, 400);
     await env.DB.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").bind(b.id).run();
     let calNote = '';
     if (b.event_id) { try { await deleteEvent(env, b.event_id); } catch (e) { console.error(e); calNote = '<p><b>Upozorenje:</b> događaj nije obrisan iz kalendara. Obrišite ga ručno.</p>'; } }
-    await sendMail(env, { to: b.email, subject: 'Otkazana rezervacija: SKRIPTA Coffice', html: mail({ chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
-    return page('Otkazano', `<h1>Rezervacija otkazana</h1><p>Gost je obaviješten emailom.${b.event_id && !calNote ? ' Događaj je uklonjen iz kalendara.' : ''}</p>${calNote}${summary(b)}`);
+    await sendMail(env, { to: b.email, subject: 'Otkazana rezervacija: SKRIPTA Coffice', html: mail({ chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
+    return page('Otkazano', `<h1>Rezervacija otkazana</h1><p>Gost je obaviješten emailom. Razlog: ${esc(why.text)}${b.event_id && !calNote ? ' Događaj je uklonjen iz kalendara.' : ''}</p>${calNote}${summary(b)}`);
   }
 
   if (b.status !== 'pending') return page('Već obrađeno', `<h1>Već obrađeno</h1><p>Status: ${esc(b.status)}</p>`);
 
   if (k.action === 'odbij') {
+    const why = pickReason('odbij', f);
+    if (!why) return page('Navedi razlog', `<h1>Navedi razlog odbijanja</h1>${summary(b)}${reasonForm(t, 'odbij', 'Odbij zahtjev', { err: 'Odaberi razlog ili upiši svoj.' })}`, 400);
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(b.id).run();
-    await sendMail(env, { to: b.email, subject: 'Tvoj zahtjev za rezervaciju', html: mail({ chip: 'Nije potvrđeno', tone: 'no', accent: C.rose, title: 'Termin nije slobodan.', lead: `Nažalost ne možemo potvrditi traženi termin. Odaberi drugi na skripta.ba ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi drugi termin' }] }) });
-    return page('Odbijeno', '<h1>Zahtjev odbijen</h1><p>Gost je obaviješten emailom.</p>');
+    await sendMail(env, { to: b.email, subject: 'Tvoj zahtjev za rezervaciju', html: mail({ chip: 'Nije potvrđeno', tone: 'no', accent: C.rose, title: 'Ne možemo potvrditi termin.', lead: `Nažalost ne možemo potvrditi traženi termin. Odaberi drugi na skripta.ba ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi drugi termin' }] }) });
+    return page('Odbijeno', `<h1>Zahtjev odbijen</h1><p>Gost je obaviješten emailom. Razlog: ${esc(why.text)}</p>`);
   }
 
   // confirm: re-check availability (another request may have been confirmed meanwhile)

@@ -13,6 +13,10 @@ dl{margin:24px 0;padding:10px 20px;background:#F4F3EF;border-left:6px solid ${ac
 dt{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#414141;padding-top:12px}
 dd{margin:2px 0 0;padding-bottom:12px;font-weight:700;font-size:17px;border-bottom:1px solid #DDDBD3}dd:last-child{border-bottom:0}
 form{margin:26px 0 0}
+fieldset{border:0;padding:0;margin:0 0 18px}legend{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#414141;padding:0 0 8px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid #1A1A1A;margin:0 0 8px;cursor:pointer;font-weight:700}.opt input{margin-top:4px;accent-color:#5B4E93}
+textarea{width:100%;font:inherit;padding:12px 14px;border:1.5px solid #1A1A1A;margin-top:4px;resize:vertical}
+.err{color:#A95457;font-weight:700}
 button{font:inherit;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:14px 24px;border:2px solid #5B4E93;background:#5B4E93;color:#fff;cursor:pointer;min-height:46px}
 button:hover{background:#463b78;border-color:#463b78}
 footer{margin-top:40px;padding-top:16px;border-top:1px solid #DDDBD3;font-size:12px;color:#414141}footer a{color:inherit}
