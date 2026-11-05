@@ -121,7 +121,7 @@
     var v = el[key].value.trim(), msg = CHECKS[key](v);
     if (key === 'email' && !msg) {
       var dom = v.slice(v.lastIndexOf('@') + 1).toLowerCase();
-      if (TYPOS[dom]) { showErr(key, 'Misliš li <button type="button" class="fix" data-fix="' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '">' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '</button>?', true); return ''; }
+      if (TYPOS[dom]) { showErr(key, 'Misliš li <button type="button" class="fix" data-fix="' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '">' + esc(v.slice(0, v.lastIndexOf('@') + 1) + TYPOS[dom]) + '</button>?', true); return 'typo'; }
     }
     if (!v && !loud) { showErr(key, ''); return msg; }
     showErr(key, msg);

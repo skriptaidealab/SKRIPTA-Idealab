@@ -36,6 +36,18 @@ export async function readToken(env, token, allowed) {
 }
 export const newId = () => b64u(crypto.getRandomValues(new Uint8Array(12)));
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 160;
+export const MAIL_TYPOS = new Set(['gmial.com','gmai.com','gmail.co','gmail.con','gmail.cm','gmail.om','gnail.com','gamil.com','gmail.comm','hotmial.com','hotmail.co','hotmail.con','yaho.com','yahooo.com','yahoo.con','outlok.com','outllook.com','outlook.con']);
+// Odbija poznate tipfelere i domene koje DNS ne poznaje (NXDOMAIN). Ako DNS provjera ne uspije, propušta (ne blokira goste).
+export async function emailDomainBad(email) {
+  const dom = email.slice(email.lastIndexOf('@') + 1).toLowerCase();
+  if (MAIL_TYPOS.has(dom)) return true;
+  try {
+    const r = await fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(dom) + '&type=MX', { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(2500) });
+    if (!r.ok) return false;
+    const j = await r.json();
+    return j.Status === 3;
+  } catch { return false; }
+}
 export const clean = (s, n = 200) => String(s ?? '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, n);
 
 export const niceName = (s) => String(s ?? '').trim().toLocaleLowerCase('bs').replace(/(^|[\s\-'])(\p{L})/gu, (m, a, c) => a + c.toLocaleUpperCase('bs'));

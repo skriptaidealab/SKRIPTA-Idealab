@@ -1,5 +1,5 @@
 import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
-import { json, esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
+import { json, esc, makeToken, newId, isEmail, clean, emailDomainBad } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
@@ -11,6 +11,7 @@ export async function onRequestPost({ request, env }) {
   const start = +b.pocetak, name = clean(b.ime, 100), email = clean(b.email, 160), phone = clean(b.telefon, 40);
   const err = checkQuery(q) || (name.split(/\s+/).length < 2 ? 'Upiši ime i prezime.' : !isEmail(email) ? 'Upiši ispravan email.' : !/^\+?[\d\s().\/-]{6,}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15 ? 'Upiši ispravan broj telefona.' : null);
   if (err) return json({ ok: false, error: err }, 400);
+  if (await emailDomainBad(email)) return json({ ok: false, error: 'Provjeri email, domena izgleda pogrešno.' }, 400);
   let day;
   try { day = await loadDay(env, q.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Pišite nam na info@skripta.ba.' }, 503); }
   const { bookings, blocks } = day;
