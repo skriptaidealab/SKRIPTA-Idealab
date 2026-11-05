@@ -80,16 +80,11 @@
   function renderSlots() {
     var v = el.date.value;
     el.dayMsg.hidden = true;
-    var soonBox = document.getElementById('b-soon'); if (soonBox) soonBox.hidden = true;
     if (!v) return;
     var d = parseDate(v);
     if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do petka).');
     if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
-    if (v > BOOKING_UNTIL) {
-      el.slots.innerHTML = ''; el.slotHint.textContent = ''; state.start = null;
-      if (soonBox) soonBox.hidden = false;
-      return update();
-    }
+    if (v > BOOKING_UNTIL) return message('Rezervacije za taj datum otvaramo uskoro.');
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
       if (demoWholeDay(v)) return message('Taj dan je cijeli prostor rezervisan za grupu (primjer povezanosti s najmom cijelog prostora).');
@@ -239,15 +234,18 @@
   function drawDays() {
     var box = document.getElementById('b-days'); if (!box) return;
     box.innerHTML = '';
-    var d = parseDate(el.date.min), end = parseDate(el.date.max);
+    var d = parseDate(el.date.min), end = parseDate(el.date.max), anySoon = false;
     for (; d <= end; d.setDate(d.getDate() + 1)) {
       var v = iso(d), b = document.createElement('button');
       b.type = 'button'; b.className = 'day'; b.dataset.d = v;
-      b.disabled = closedDay(d);
+      var notYet = v > BOOKING_UNTIL && !closedDay(d);
+      if (notYet) { anySoon = true; b.className = 'day soon'; }
+      b.disabled = closedDay(d) || notYet;
       b.setAttribute('aria-pressed', String(el.date.value === v));
-      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : (v > BOOKING_UNTIL && !closedDay(d) ? '<i class="soon">uskoro</i>' : ''));
+      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : (notYet ? '<i class="soon">uskoro</i>' : ''));
       box.appendChild(b);
     }
+    var sb = document.getElementById('b-soon'); if (sb) sb.hidden = !anySoon;
     box.onclick = function (e) {
       var b = e.target.closest('.day'); if (!b || b.disabled) return;
       el.date.value = b.dataset.d;
@@ -257,7 +255,7 @@
   }
 
   var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
-  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && !closedDay(parseDate(dm[1]))) el.date.value = dm[1];
+  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && dm[1] <= BOOKING_UNTIL && !closedDay(parseDate(dm[1]))) el.date.value = dm[1];
   drawDays();
 
   function setMode(live) {

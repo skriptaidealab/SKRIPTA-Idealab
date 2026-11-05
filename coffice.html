@@ -21,7 +21,7 @@
   <meta property="og:url" content="https://www.skripta.ba/coffice.html">
   <meta property="og:image" content="https://www.skripta.ba/images/og-coffice.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/style.css?v=20261105d">
+  <link rel="stylesheet" href="css/style.css?v=20261105e">
   <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -211,6 +211,15 @@
               <div class="fld"><span class="lab" id="l-date">Datum</span>
                 <input type="hidden" id="b-date">
                 <div id="b-days" class="days" role="group" aria-labelledby="l-date"></div>
+                <div class="soon-box" id="b-soon">
+                  <p><b>Dani označeni sa "uskoro" još nisu otvoreni za rezervacije.</b> Ostavi email i javit ćemo ti čim ih otvorimo.</p>
+                  <form class="soon-form" id="b-soon-form" novalidate>
+                    <input type="email" id="b-soon-email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="ime@primjer.ba" aria-label="Email za obavijest">
+                    <button type="submit" class="btn btn-solid">Obavijesti me</button>
+                    <div style="position:absolute;left:-9999px;" aria-hidden="true"><input type="text" id="b-soon-web" tabindex="-1" autocomplete="off"></div>
+                  </form>
+                  <p class="hint" id="b-soon-msg" role="status" hidden></p>
+                </div>
               </div>
               <div class="fld"><span class="lab" id="l-dur">Trajanje</span>
                 <div class="seg dur-seg" role="radiogroup" aria-labelledby="l-dur">
@@ -223,15 +232,6 @@
               </div>
               <div class="fld"><span class="lab">Vrijeme početka</span>
                 <p id="b-day-msg" class="hint warn" role="status" hidden></p>
-                <div class="soon-box" id="b-soon" hidden>
-                  <p><b>Rezervacije otvaramo uskoro.</b> Ostavi email ako želiš da te obavijestimo.</p>
-                  <form class="soon-form" id="b-soon-form" novalidate>
-                    <input type="email" id="b-soon-email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="ime@primjer.ba" aria-label="Email za obavijest">
-                    <button type="submit" class="btn btn-solid">Obavijesti me</button>
-                    <div style="position:absolute;left:-9999px;" aria-hidden="true"><input type="text" id="b-soon-web" tabindex="-1" autocomplete="off"></div>
-                  </form>
-                  <p class="hint" id="b-soon-msg" role="status" hidden></p>
-                </div>
                 <div id="b-slots" class="slots" aria-live="polite"></div>
                 <p id="b-slot-hint" class="hint"></p>
               </div>
@@ -381,7 +381,7 @@
       </div>
     </div>
   </footer>
-  <script src="js/main.js?v=20261105d"></script>
-  <script src="js/booking.js?v=20261105d"></script>
+  <script src="js/main.js?v=20261105e"></script>
+  <script src="js/booking.js?v=20261105e"></script>
 </body>
 </html>

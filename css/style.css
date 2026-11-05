@@ -1465,11 +1465,11 @@ body.is-openday .poster .hero-price { display: none; }
 .news-opt input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--indigo); }
 
 /* Day picker in the booking form (Sundays disabled) */
-.days { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
+.days { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
 .day { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; border: 1.5px solid var(--ink); background: #fff; font: inherit; color: var(--ink); cursor: pointer; border-radius: 0; }
 .day small { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 800; }
 .day b { font-size: 0.95rem; font-weight: 800; }
-.day i { font-style: normal; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; background: var(--mustard); color: var(--ink); padding: 1px 5px; margin-top: 2px; }
+.day i { font-style: normal; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap; max-width: 100%; box-sizing: border-box; text-transform: uppercase; background: var(--mustard); color: var(--ink); padding: 1px 5px; margin-top: 2px; }
 .day:hover:not(:disabled) { background: var(--butter); }
 .day[aria-pressed=true] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
 .day[aria-pressed=true] i { background: #fff; }
@@ -1508,7 +1508,8 @@ body.is-openday .poster .hero-price { display: none; }
   .stepper { display: grid; }
 }
 .flex-card b.soon { font-size: clamp(1.3rem, 2.2vw, 1.7rem); letter-spacing: -0.03em; padding: 6px 0 2px; }
-.day i.soon { background: var(--ink); color: #fff; }
+.day.soon:disabled { opacity: 1; text-decoration: none; cursor: default; background: #f1f0ec; border-color: #c9c7bf; color: #8a877d; }
+.day.soon i.soon { background: transparent; color: #8a877d; padding: 1px 0; }
 .soon-box { border: 1.5px solid var(--ink); background: #fff; padding: 16px 18px; margin-top: 4px; }
 .soon-box p { margin: 0 0 12px; }
 .soon-box p.hint { margin: 10px 0 0; }
