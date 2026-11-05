@@ -24,17 +24,19 @@ export function sendMail(env, { to, subject, html, replyTo }) {
 }
 const local = (date, min) => `${date}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}:00`;
 export async function createEvent(env, { subject, html, date, startMin, endMin }) {
+  if (env.OUTLOOK_OFF) return null; // Outlook kalendar se više ne koristi (blokade su u bazi, tabela `blocks`)
   const tz = 'Central European Standard Time';
   if (env.TEST_MODE) subject = '[TEST] ' + subject;
   const ev = await call(env, 'POST', '/events', { subject, body: { contentType: 'HTML', content: html }, start: { dateTime: local(date, startMin), timeZone: tz }, end: { dateTime: local(date, endMin), timeZone: tz }, location: { displayName: 'SKRIPTA, Emerika Bluma 9, Sarajevo' } });
   return ev.id;
 }
-export const deleteEvent = (env, id) => call(env, 'DELETE', '/events/' + encodeURIComponent(id));
+export const deleteEvent = (env, id) => (env.OUTLOOK_OFF ? null : call(env, 'DELETE', '/events/' + encodeURIComponent(id)));
 
 // Admin blocks live in the Outlook calendar: any event whose subject starts with "BLOK" closes the space.
 // All-day events close the whole day. Times are read in Sarajevo local time.
 const cache = new Map();
 export async function listBlocks(env, date) {
+  if (env.OUTLOOK_OFF) return []; // blokade se čitaju samo iz baze
   const hit = cache.get(date);
   if (hit && hit.exp > Date.now()) return hit.v;
   const day = (n) => new Date(Date.parse(date + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);

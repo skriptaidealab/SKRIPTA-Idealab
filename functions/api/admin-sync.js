@@ -6,6 +6,7 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 export async function onRequestPost({ request, env }) {
   const key = (request.headers.get('x-cron-secret') || '').trim(), want = String(env.CRON_SECRET || '').trim();
   if (!want || key.length !== want.length || [...key].some((c, i) => c !== want[i])) return new Response('Forbidden', { status: 403 });
+  if (env.OUTLOOK_OFF) return json({ ok: true, action: 'off' });
   const body = await request.json().catch(() => ({}));
   const b = body.id && await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(String(body.id)).first();
   if (!b) return json({ ok: false, error: 'not found' }, 404);
