@@ -236,6 +236,7 @@
     box.innerHTML = '';
     var d = parseDate(el.date.min), end = parseDate(el.date.max), anySoon = false;
     for (; d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 6 && closedDay(d)) continue; // closed Saturdays are not shown at all
       var v = iso(d), b = document.createElement('button');
       b.type = 'button'; b.className = 'day'; b.dataset.d = v;
       var notYet = v > BOOKING_UNTIL && !closedDay(d);
