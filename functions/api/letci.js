@@ -45,7 +45,7 @@ const BACK = `<div class="a5 back"><div class="circ b"></div>
 <tr><td>Quiet zona</td>${[1, 2, 4, 6].map((h) => `<td>${km(PRICES.ind[h])}</td>`).join('')}</tr>
 <tr><td>Lounge zona<small>po osobi</small></td>${[1, 2, 4].map((h) => `<td>${km(PRICES.lounge[h])}</td>`).join('')}<td>-</td></tr></table>
 <h2 class="f">FLEXI paketi</h2>
-<p class="sub">Unaprijed plaćene posjete za Quiet zonu.</p>
+<p class="sub">Vrijede samo za Quiet zonu. Ograničena količina paketa.</p>
 <table class="pt"><tr><th>Broj dolazaka</th><th>5</th><th>10</th><th>15</th></tr>
 <tr><td>Posjete od 4 h</td><td>90 KM</td><td>170 KM</td><td>240 KM</td></tr>
 <tr><td>Posjete od 6 h</td><td>112,50 KM</td><td>212,50 KM</td><td>300 KM</td></tr>

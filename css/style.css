@@ -1518,3 +1518,4 @@ body.is-openday .poster .hero-price { display: none; }
 .soon-form .btn { flex: none; }
 .soon-form[hidden] { display: none; }
 .price td.na { color: #8a877d; }
+.flex-only { display: inline-block; margin-top: 12px; padding: 6px 12px; background: var(--ink); color: #fff; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
