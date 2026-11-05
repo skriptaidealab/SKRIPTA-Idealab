@@ -1,5 +1,5 @@
 // Shared booking rules. Values marked TODO are owner decisions or proposals.
-export const OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30;
+export const OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30; // Mon-Fri 09:00 to 18:30
 // Dates with shortened opening hours (minutes from midnight): [open, close].
 export const SPECIAL_HOURS = {
   '2026-11-04': [10 * 60, 20 * 60],
@@ -19,7 +19,7 @@ export const SAT_HOURS = [10 * 60, 15 * 60];
 export const hoursFor = (date) => SPECIAL_HOURS[date] || (new Date(dayNum(date) * 86400000).getUTCDay() === 6 ? SAT_HOURS : [OPEN, CLOSE]);
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
-export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Sat 9-14.11.)
+export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Fri, Sat 7.11. only)
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
 export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 8: 28 },

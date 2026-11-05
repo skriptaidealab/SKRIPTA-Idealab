@@ -7,7 +7,7 @@
 
   var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 8: 28 }, lounge: { 1: 5, 2: 8, 4: 13, 8: 18 } };
   var NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
-  var OPEN = 8 * 60, CLOSE = 21 * 60, STEP = 30, LEAD_MIN = 60;
+  var OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30, LEAD_MIN = 60;
 
   var $ = function (s) { return root.querySelector(s); };
   var el = {
@@ -80,7 +80,7 @@
     el.dayMsg.hidden = true;
     if (!v) return;
     var d = parseDate(v);
-    if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do subota).');
+    if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do petka).');
     if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
