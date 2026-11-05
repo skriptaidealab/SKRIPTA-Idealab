@@ -15,18 +15,17 @@ export const FROZEN = { '2026-11-04': [[11 * 60, 14 * 60]] };
 // Saturdays after this date are closed for now (booking.js has the same constant). Remove to reopen.
 export const SAT_CLOSED_AFTER = '2026-11-08';
 // Saturdays: bookings may only fall between 10:00 and 15:00. Existing confirmed bookings outside this window stay valid.
-// Bookings are open only up to this date for now; later dates show "uskoro" (booking.js has the same constant). Remove to reopen.
-export const BOOKING_UNTIL = '2026-11-07';
+// Bookings open up to this date; later dates show "uskoro" with an email form (booking.js has the same constant). Far in the future = all open.
+export const BOOKING_UNTIL = '2099-12-31';
 export const SAT_HOURS = [10 * 60, 15 * 60];
 export const hoursFor = (date) => SPECIAL_HOURS[date] || (new Date(dayNum(date) * 86400000).getUTCDay() === 6 ? SAT_HOURS : [OPEN, CLOSE]);
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
 export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Fri, Sat 7.11. only)
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
-// Prices are hidden on the site for now (internal totals only). 6 h is a placeholder between 4 h and 8 h: confirm with owner.
 export const PRICES = {
-  ind:    { 1: 7, 2: 12, 4: 20, 6: 24, 8: 28 },
-  lounge: { 1: 5, 2: 8,  4: 13, 6: 16, 8: 18 }
+  ind:    { 1: 7, 2: 12, 4: 20, 6: 26 },
+  lounge: { 1: 6, 2: 10, 4: 15 }
 };
 export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
 export const MAX_PERSONS = 4; // most people in one booking
@@ -36,7 +35,7 @@ export const CAPACITY = { ind: 15, lounge: 9 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 export const total = (zone, dur, persons, date) => (isFree(date) ? 0 : PRICES[zone][dur] * persons);
-export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : 'Plaćanje po dolasku');
+export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${sum} KM, plaćanje po dolasku`);
 
 export function sarajevoNow(at = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);
@@ -47,7 +46,7 @@ export const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) 
 
 export function checkQuery(q) {
   if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
-  if (![1, 2, 4, 6, 8].includes(q.dur)) return 'Nepoznato trajanje.';
+  if (PRICES[q.zone][q.dur] === undefined) return q.zone === 'lounge' && q.dur === 6 ? 'Lounge zona se rezerviše do 4 sata.' : 'Nepoznato trajanje.';
   const maxP = MAX_PERSONS, minP = 1;
   if (!Number.isInteger(q.persons) || q.persons < minP || q.persons > maxP) return 'Neispravan broj osoba.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';

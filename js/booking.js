@@ -5,7 +5,7 @@
   var root = document.getElementById('rezervacija');
   if (!root) return;
 
-  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 6: 24, 8: 28 }, lounge: { 1: 5, 2: 8, 4: 13, 6: 16, 8: 18 } };
+  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 6: 26 }, lounge: { 1: 6, 2: 10, 4: 15 } };
   var NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
   var OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30, LEAD_MIN = 60;
 
@@ -65,9 +65,7 @@
       el.slots.appendChild(b);
     }
     if (state.start !== null && allowed.indexOf(state.start) < 0) state.start = null;
-    el.slotHint.textContent = state.dur === 8
-      ? 'Dnevna tarifa traje osam sati. Početak je moguć najkasnije u ' + fmt(close - 480) + '.'
-      : (allowed.length ? 'Prikazani su slobodni termini. Precrtani su zauzeti ili prekasni.' : 'Nema slobodnih termina za ovaj izbor. Probajte drugi datum ili kraće trajanje.');
+    el.slotHint.textContent = allowed.length ? 'Prikazani su slobodni termini. Precrtani su zauzeti ili prekasni.' : 'Nema slobodnih termina za ovaj izbor. Probajte drugi datum ili kraće trajanje.';
     update();
   }
   function message(text) { el.dayMsg.textContent = text; el.dayMsg.hidden = false; el.slots.innerHTML = ''; el.slotHint.textContent = ''; state.start = null; update(); }
@@ -75,7 +73,7 @@
   // Saturdays after this date are closed for now (same rule as functions/_lib/rules.js).
   var SAT_CLOSED_AFTER = '2026-11-08';
   // Dates after this are not bookable yet: show "uskoro" and collect an email (same constant as functions/_lib/rules.js).
-  var BOOKING_UNTIL = '2026-11-07';
+  var BOOKING_UNTIL = '2099-12-31';
   function closedDay(d) { return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER); }
   function renderSlots() {
     var v = el.date.value;
@@ -165,26 +163,33 @@
   var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
   function isFree() { return FREE_DATES.indexOf(el.date.value) >= 0; }
   function update() {
-    var n = persons();
+    var n = persons(), p = PRICES[state.zone][state.dur], total = isFree() ? 0 : p * n;
     el.sZone.textContent = NAMES[state.zone];
-    el.sDur.textContent = state.dur === 8 ? 'Dnevna tarifa (8 sati)' : state.dur + (state.dur === 1 ? ' sat' : (state.dur < 5 ? ' sata' : ' sati'));
+    el.sDur.textContent = state.dur + (state.dur === 1 ? ' sat' : (state.dur < 5 ? ' sata' : ' sati'));
     el.sPeople.textContent = n + (n === 1 ? ' osoba' : ' osobe');
     if (state.start !== null && el.date.value) {
       var d = parseDate(el.date.value);
       el.sWhen.textContent = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. u ' + fmt(state.start) + ' do ' + fmt(state.start + state.dur * 60);
     } else el.sWhen.textContent = 'Odaberi termin';
-    el.total.textContent = isFree() ? 'Besplatno' : '';
-    el.total.style.display = isFree() ? '' : 'none';
+    el.total.textContent = isFree() ? 'Besplatno' : total + ' KM';
     if (isFree()) el.totalSub.textContent = 'Jedva čekamo da dođeš!' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
-    else el.totalSub.textContent = 'Cijene uskoro. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
+    else el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
     syncPersons(); needUpdate();
     el.out.hidden = true; el.err.hidden = true;
   }
 
+  /* Lounge is bookable up to 4 hours only: hide 6 h there and step back to 4 h if it was selected. */
+  function syncDur() {
+    var six = root.querySelector('input[name=dur][value="6"]'); if (!six) return;
+    var lounge = state.zone === 'lounge';
+    six.parentNode.style.display = lounge ? 'none' : '';
+    if (lounge && state.dur === 6) { state.dur = 4; var r4 = root.querySelector('input[name=dur][value="4"]'); if (r4) r4.checked = true; }
+  }
+
   root.addEventListener('change', function (e) {
     var t = e.target;
-    if (t.name === 'zone') { state.zone = t.value; renderSlots(); }
+    if (t.name === 'zone') { state.zone = t.value; syncDur(); renderSlots(); }
     else if (t.name === 'dur') { state.dur = +t.value; renderSlots(); }
     else if (t === el.date || t === el.persons) renderSlots();
   });
@@ -202,9 +207,9 @@
     var bad = ['name', 'email', 'phone'].filter(function (k) { return validate(k, true); });
     if (bad.length) { el[bad[0]].focus(); return fail(bad.length > 1 ? 'Dopuni označena polja.' : fieldErr(bad[0]).textContent); }
     el.err.hidden = true;
-    var n = persons(), total = isFree() ? 0 : 1;
+    var n = persons(), total = isFree() ? 0 : PRICES[state.zone][state.dur] * n;
     if (!state.live) {
-      el.out.innerHTML = '<span class="stamp">DEMO · NIJE STVARNA REZERVACIJA</span><p><b>Primjer</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + esc(el.sPeople.textContent) + '.</p><p>' + (total === 0 ? 'Besplatno' : 'Plaćanje po dolasku') + '. Ništa nije poslano niti spremljeno.</p>';
+      el.out.innerHTML = '<span class="stamp">DEMO · NIJE STVARNA REZERVACIJA</span><p><b>Primjer</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + esc(el.sPeople.textContent) + '.</p><p>' + (total === 0 ? 'Besplatno' : 'Ukupno ' + total + ' KM, plaćanje po dolasku') + '. Ništa nije poslano niti spremljeno.</p>';
       el.out.hidden = false; return;
     }
     el.btn.disabled = true; el.btn.textContent = 'Šaljem...';
@@ -215,7 +220,7 @@
       .then(function (res) {
         el.btn.textContent = 'Pošalji zahtjev';
         if (!res.ok) { el.btn.disabled = false; if (res.j && /slobodan/.test(res.j.error || '')) renderSlots(); return fail((res.j && res.j.error) || 'Slanje nije uspjelo.'); }
-        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + (total === 0 ? 'besplatno. Jedva čekamo da dođeš!' : 'plaćanje po dolasku.') + '</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
+        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + (total === 0 ? 'besplatno. Jedva čekamo da dođeš!' : 'ukupno ' + total + ' KM.') + '</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
         el.out.hidden = false; el.btn.hidden = true; if (el.need) el.need.hidden = true;
         try { el.out.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
       })

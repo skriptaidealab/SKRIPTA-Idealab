@@ -41,16 +41,16 @@ h2{font-size:30pt;letter-spacing:-1.2pt;line-height:1;margin-top:14mm;position:r
 const BACK = `<div class="a5 back"><div class="circ b"></div>
 <div class="top"><b>SKRIPTA Coffice</b><span>skripta.ba</span></div>
 <h2>Cjenovnik</h2>
-<table class="pt"><tr><th></th><th>1 h</th><th>2 h</th><th>4 h</th><th>8 h</th></tr>
-<tr><td>Quiet zona</td>${[1, 2, 4, 8].map((h) => `<td>${km(PRICES.ind[h])}</td>`).join('')}</tr>
-<tr><td>Lounge zona<small>po osobi</small></td>${[1, 2, 4, 8].map((h) => `<td>${km(PRICES.lounge[h])}</td>`).join('')}</tr></table>
-<h2 class="f">FLEX paketi</h2>
+<table class="pt"><tr><th></th><th>1 h</th><th>2 h</th><th>4 h</th><th>6 h</th></tr>
+<tr><td>Quiet zona</td>${[1, 2, 4, 6].map((h) => `<td>${km(PRICES.ind[h])}</td>`).join('')}</tr>
+<tr><td>Lounge zona<small>po osobi</small></td>${[1, 2, 4].map((h) => `<td>${km(PRICES.lounge[h])}</td>`).join('')}<td>-</td></tr></table>
+<h2 class="f">FLEXI paketi</h2>
 <p class="sub">Unaprijed plaćene posjete za Quiet zonu.</p>
-<table class="pt"><tr><th>Broj dolazaka</th><th>5</th><th>10</th><th>20</th></tr>
-<tr><td>Posjete od 2 h</td><td>51 KM</td><td>96 KM</td><td>168 KM</td></tr>
-<tr><td>Posjete od 8 h</td><td>119 KM</td><td>224 KM</td><td>392 KM</td></tr>
-<tr class="pop"><td>Popust</td><td>15%</td><td>20%</td><td>30%</td></tr></table>
-<p class="sub flex">Za FLEX pakete piši nam na <b>info@skripta.ba</b></p>
+<table class="pt"><tr><th>Broj dolazaka</th><th>5</th><th>10</th><th>15</th></tr>
+<tr><td>Posjete od 4 h</td><td>90 KM</td><td>170 KM</td><td>240 KM</td></tr>
+<tr><td>Posjete od 6 h</td><td>112,50 KM</td><td>212,50 KM</td><td>300 KM</td></tr>
+<tr class="pop"><td>Popust</td><td>10%</td><td>15%</td><td>20%</td></tr></table>
+<p class="sub flex">Za FLEXI pakete piši nam na <b>info@skripta.ba</b></p>
 <div class="foot"><span>Sve cijene su u KM i uključuju PDV. Kafa ili čaj su uključeni.</span></div></div>`;
 
 function front(env, b, date) {

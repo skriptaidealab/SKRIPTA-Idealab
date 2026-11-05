@@ -1489,7 +1489,7 @@ body.is-openday .poster .hero-price { display: none; }
 .bstep-n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.95rem; }
 .bstep-h h3 { margin: 4px 0 0; font-size: 1.15rem; line-height: 1.2; }
 .bstep-h p { margin: 6px 0 0; font-size: 0.92rem; color: var(--ink-soft); line-height: 1.4; }
-.dur-seg { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.dur-seg { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .stepper { display: inline-grid; grid-template-columns: 52px minmax(110px, auto) 52px; align-items: stretch; border: 1.5px solid var(--ink); background: #fff; }
 .stepper output { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.05rem; padding: 0 14px; border-left: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); }
 .stp { min-height: 52px; border: 0; background: #fff; font: inherit; font-size: 1.5rem; font-weight: 800; line-height: 1; cursor: pointer; color: var(--ink); }
@@ -1504,7 +1504,7 @@ body.is-openday .poster .hero-price { display: none; }
 .need[hidden] { display: none; }
 @media (max-width: 620px) {
   .book-form { padding: 4px 16px 20px; }
-  .dur-seg { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dur-seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stepper { display: grid; }
 }
 .flex-card b.soon { font-size: clamp(1.3rem, 2.2vw, 1.7rem); letter-spacing: -0.03em; padding: 6px 0 2px; }
@@ -1517,3 +1517,4 @@ body.is-openday .poster .hero-price { display: none; }
 .soon-form input[type=email] { flex: 1 1 220px; min-width: 0; }
 .soon-form .btn { flex: none; }
 .soon-form[hidden] { display: none; }
+.price td.na { color: #8a877d; }
