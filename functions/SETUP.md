@@ -14,8 +14,7 @@ Ovaj folder (`functions/`) radi samo na Cloudflare Pages. Na GitHub Pages ne rad
 3. Pages, Settings, Bindings: D1 binding naziva `DB` na tu bazu.
 4. Pages, Settings, Variables and Secrets:
    - `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET` (secret)
-   - `MAILBOX` = info@skripta.ba (kalendar)
-   - `MAIL_FROM` = shared mailbox za slanje, npr. rezervacije@skripta.ba (neobavezno; ako nije postavljeno, šalje se s MAILBOX). Aplikacija mora imati `Mail.Send` i pristup tom sandučiću.
+   - `MAILBOX` = info@skripta.ba
    - `SITE_URL` = https://www.skripta.ba
    - `SIGNING_SECRET` = dugačak nasumičan niz (secret)
 5. Nakon objave provjerite da `/functions/` izvorni kod nije dostupan kao statički fajl i da `_to_delete/` nije objavljen.

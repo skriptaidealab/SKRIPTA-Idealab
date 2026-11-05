@@ -3,11 +3,12 @@ import { esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
 import { googleUrl } from '../_lib/cal.js';
+import { markOptIn, subscribeIfOptedIn } from '../_lib/newsletter.js';
 
 // Ručno dodavanje rezervacije s nadzorne ploče popunjenosti. Rezervacija je odmah potvrđena (nema koraka odobravanja),
 // termin ide u Outlook, a gost dobija isti mail potvrde kao nakon klika na „Potvrdi” u mailu zahtjeva.
 // Pravila kao na sajtu: kapacitet zone, cijelo-prostorni najmi, trajanja 1/2/4/6/8 h, do 4 osobe, cijena po datumu.
-// Radno vrijeme, rok unaprijed i raspon datuma se ne provjeravaju (osoblje odlučuje). Preklapanje se javlja kao 409 i može se zaobići s force.
+// Radno vrijeme, rok unaprijed i raspon datuma se ne provjeravaju (osoblje odlučuje). Preklapanje se uvijek odbija (409), bez izuzetka.
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
 
@@ -17,6 +18,20 @@ export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
 
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
+  if (b.provjera) { // slobodni počeci za formu (08:00 do 21:00, korak 30 min), isti kriterij kao pri upisu
+    const bad = checkQuery({ ...q, date: sarajevoNow().date });
+    if ((bad && /^(Nepoznata zona|Nepoznato trajanje|Neispravan broj osoba)/.test(bad)) || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return json({ ok: false, error: 'Neispravan upit.', starts: [] }, 400);
+    let d; try { d = await loadDay(env, q.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Kalendar trenutno nije dostupan.', starts: [] }, 503); }
+    const n = sarajevoNow(), starts = [];
+    if (q.date >= n.date) for (let s = 8 * 60; s + q.dur * 60 <= 21 * 60; s += 30) {
+      const e = s + q.dur * 60;
+      if (q.date === n.date && s + 30 <= n.min) continue;
+      if (tableFor(q, s, d.bookings) < 0) continue;
+      if (d.blocks.some((x) => s < x.end_min + BUFFER_MIN && e > x.start_min - BUFFER_MIN)) continue;
+      starts.push(s);
+    }
+    return json({ ok: true, starts });
+  }
   const start = +b.pocetak, name = clean(b.ime, 100), email = clean(b.email, 160).toLowerCase(), phone = clean(b.telefon, 40);
   const now = sarajevoNow();
   let err = null;
@@ -39,12 +54,13 @@ export async function onRequestPost({ request, env }) {
   const end = start + q.dur * 60, issues = [];
   if (tableFor(q, start, day.bookings) < 0) issues.push(`${NAMES[q.zone]} nema dovoljno slobodnih mjesta u tom terminu`);
   if (day.blocks.some((x) => start < x.end_min + BUFFER_MIN && end > x.start_min - BUFFER_MIN)) issues.push('cijeli prostor je zauzet (najam)');
-  if (issues.length && !b.force) return json({ ok: false, conflict: true, error: issues.join('; ') }, 409);
+  if (issues.length) return json({ ok: false, conflict: true, error: issues.join('; ') }, 409);
 
   const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date);
   await env.DB.prepare("INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,'confirmed',?,?,?,?,?,?,?,?,?)")
     .bind(id, new Date().toISOString(), q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
   const r = await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
+  if (b.newsletter === true) { await markOptIn(env, id); await subscribeIfOptedIn(env, r); } // samo ako je osoblje označilo da je gost pristao
 
   let calendar = true, mailed = true, eventId = null;
   const cancelUs = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'otkazi-mi')}`;
