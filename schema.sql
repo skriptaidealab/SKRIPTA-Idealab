@@ -38,3 +38,6 @@ CREATE TABLE IF NOT EXISTS blocks (
   note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_blocks_date ON blocks(date);
+
+-- Emails left on the "rezervacije uskoro" notice (api/obavijest.js also creates this table on first use).
+CREATE TABLE IF NOT EXISTS waitlist (email TEXT PRIMARY KEY, created_at TEXT NOT NULL, note TEXT);

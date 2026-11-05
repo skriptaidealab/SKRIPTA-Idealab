@@ -1508,3 +1508,11 @@ body.is-openday .poster .hero-price { display: none; }
   .stepper { display: grid; }
 }
 .flex-card b.soon { font-size: clamp(1.3rem, 2.2vw, 1.7rem); letter-spacing: -0.03em; padding: 6px 0 2px; }
+.day i.soon { background: var(--ink); color: #fff; }
+.soon-box { border: 1.5px solid var(--ink); background: #fff; padding: 16px 18px; margin-top: 4px; }
+.soon-box p { margin: 0 0 12px; }
+.soon-box p.hint { margin: 10px 0 0; }
+.soon-form { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+.soon-form input[type=email] { flex: 1 1 220px; min-width: 0; }
+.soon-form .btn { flex: none; }
+.soon-form[hidden] { display: none; }

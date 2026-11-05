@@ -74,14 +74,22 @@
 
   // Saturdays after this date are closed for now (same rule as functions/_lib/rules.js).
   var SAT_CLOSED_AFTER = '2026-11-08';
+  // Dates after this are not bookable yet: show "uskoro" and collect an email (same constant as functions/_lib/rules.js).
+  var BOOKING_UNTIL = '2026-11-06';
   function closedDay(d) { return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER); }
   function renderSlots() {
     var v = el.date.value;
     el.dayMsg.hidden = true;
+    var soonBox = document.getElementById('b-soon'); if (soonBox) soonBox.hidden = true;
     if (!v) return;
     var d = parseDate(v);
     if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do petka).');
     if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
+    if (v > BOOKING_UNTIL) {
+      el.slots.innerHTML = ''; el.slotHint.textContent = ''; state.start = null;
+      if (soonBox) soonBox.hidden = false;
+      return update();
+    }
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
       if (demoWholeDay(v)) return message('Taj dan je cijeli prostor rezervisan za grupu (primjer povezanosti s najmom cijelog prostora).');
@@ -237,7 +245,7 @@
       b.type = 'button'; b.className = 'day'; b.dataset.d = v;
       b.disabled = closedDay(d);
       b.setAttribute('aria-pressed', String(el.date.value === v));
-      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : '');
+      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : (v > BOOKING_UNTIL && !closedDay(d) ? '<i class="soon">uskoro</i>' : ''));
       box.appendChild(b);
     }
     box.onclick = function (e) {
@@ -295,5 +303,25 @@
         ok.textContent = 'Slanje preko websitea nije uspjelo. Otvaramo ti email s pripremljenim upitom, ili nam piši na info@skripta.ba.';
         ok.hidden = false; mailto();
       });
+  });
+})();
+
+/* ---------- "obavijesti me" for dates that are not open yet ---------- */
+(function () {
+  var f = document.getElementById('b-soon-form'); if (!f) return;
+  var inp = document.getElementById('b-soon-email'), msg = document.getElementById('b-soon-msg'), btn = f.querySelector('button');
+  function say(t, bad) { msg.textContent = t; msg.hidden = !t; msg.className = 'hint' + (bad ? ' warn' : ''); }
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = inp.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { say('Upiši ispravan email.', true); inp.focus(); return; }
+    btn.disabled = true; say('');
+    fetch('/api/obavijest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: v, datum: (document.getElementById('b-date') || {}).value || '', web: (document.getElementById('b-soon-web') || {}).value || '' }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { btn.disabled = false; return say((res.j && res.j.error) || 'Slanje nije uspjelo.', true); }
+        f.hidden = true; say('Hvala! Javit ćemo ti čim otvorimo rezervacije.');
+      })
+      .catch(function () { btn.disabled = false; say('Slanje nije uspjelo. Piši nam na info@skripta.ba.', true); });
   });
 })();
