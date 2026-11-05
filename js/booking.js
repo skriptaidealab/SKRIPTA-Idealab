@@ -75,7 +75,7 @@
   // Saturdays after this date are closed for now (same rule as functions/_lib/rules.js).
   var SAT_CLOSED_AFTER = '2026-11-08';
   // Dates after this are not bookable yet: show "uskoro" and collect an email (same constant as functions/_lib/rules.js).
-  var BOOKING_UNTIL = '2026-11-06';
+  var BOOKING_UNTIL = '2026-11-07';
   function closedDay(d) { return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER); }
   function renderSlots() {
     var v = el.date.value;
@@ -84,7 +84,7 @@
     var d = parseDate(v);
     if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do petka).');
     if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
-    if (v > BOOKING_UNTIL) return message('Rezervacije za taj datum otvaramo uskoro.');
+    if (v > BOOKING_UNTIL) return message('Rezervacije za taj datum još nisu otvorene.');
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
       if (demoWholeDay(v)) return message('Taj dan je cijeli prostor rezervisan za grupu (primjer povezanosti s najmom cijelog prostora).');
@@ -162,7 +162,7 @@
   if (el.minus) el.minus.addEventListener('click', function () { setPersons(persons() - 1); });
   if (el.plus) el.plus.addEventListener('click', function () { setPersons(persons() + 1); });
 
-  var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06'];
+  var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
   function isFree() { return FREE_DATES.indexOf(el.date.value) >= 0; }
   function update() {
     var n = persons();
