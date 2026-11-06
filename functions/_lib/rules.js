@@ -1,4 +1,6 @@
 // Shared booking rules. Values marked TODO are owner decisions or proposals.
+// Open days, hours, discounts and the booking horizon can be edited on the occupancy dashboard (tables hours_weekly,
+// hours_dates, discounts, settings). The constants below are the fallback when those tables are missing or empty.
 export const OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30; // Mon-Fri 09:00 to 18:30
 // Dates with shortened opening hours (minutes from midnight): [open, close].
 export const SPECIAL_HOURS = {
@@ -18,7 +20,6 @@ export const SAT_CLOSED_AFTER = '2026-11-08';
 // Bookings open up to this date; later dates show "uskoro" with an email form (booking.js has the same constant). Far in the future = all open.
 export const BOOKING_UNTIL = '2099-12-31';
 export const SAT_HOURS = [10 * 60, 15 * 60];
-export const hoursFor = (date) => SPECIAL_HOURS[date] || (new Date(dayNum(date) * 86400000).getUTCDay() === 6 ? SAT_HOURS : [OPEN, CLOSE]);
 export const LEAD_MIN = 60;        // TODO proposal: earliest booking 1 hour ahead
 export const MAX_DAYS = 5;          // furthest bookable date: 5 days ahead (rolling)
 export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date stays open (Mon-Fri, Sat 7.11. only)
@@ -46,7 +47,6 @@ const phoneKey = (p) => String(p || '').replace(/\D/g, '').slice(-8);
 const dm = (d) => `${+d.slice(8)}.${+d.slice(5, 7)}.`;
 export const roundHalf = (n) => Math.round(n * 2) / 2; // prices are rounded to 0,5 KM
 export const kmNum = (n) => String(n).replace('.', ',');
-export const total = (zone, dur, persons, date, pct = 0) => (isFree(date) ? 0 : roundHalf(PRICES[zone][dur] * persons * (1 - pct / 100)));
 export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${kmNum(sum)} KM, plaćanje po dolasku`);
 // Checks a promo code for a booking query. Returns { ok, code, pct, base, total } or { ok: false, error }.
 export async function applyPromo(env, raw, q) {
@@ -86,17 +86,119 @@ export function sarajevoNow(at = new Date()) {
 }
 export const dayNum = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000);
 
-export function checkQuery(q) {
+export const ymd = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
+const dowOf = (date) => new Date(dayNum(date) * 86400000).getUTCDay(); // 0 = Sunday
+
+/* ---------- schedule: open days, hours, discounts ---------- */
+
+// The old hard-coded rules expressed as a schedule object. Used when the database tables are missing or empty.
+export function legacySchedule() {
+  const weekly = {};
+  for (let i = 0; i < 7; i++) weekly[i] = { closed: i === 0, open: OPEN, close: CLOSE };
+  weekly[6] = { closed: true, open: SAT_HOURS[0], close: SAT_HOURS[1] };
+  const dates = {};
+  for (const [d, [a, z]] of Object.entries(SPECIAL_HOURS)) dates[d] = { closed: false, open: a, close: z };
+  for (let n = dayNum(sarajevoNow().date) - 7; n <= dayNum(SAT_CLOSED_AFTER); n++) {
+    const d = ymd(n);
+    if (!dates[d] && dowOf(d) === 6) dates[d] = { closed: false, open: SAT_HOURS[0], close: SAT_HOURS[1] };
+  }
+  const discounts = FREE_DATES.map((d, i) => ({ id: -1 - i, label: 'Open day', percent: 100, start: 0, end: 1440, dows: null, from: d, to: d, zone: null }));
+  return { weekly, dates, discounts, maxDays: MAX_DAYS, openUntil: OPEN_UNTIL, legacy: true };
+}
+
+const toNum = (v) => (v === null || v === undefined || v === '' ? null : +v);
+
+// Reads the schedule from D1. Never throws: if the tables are missing (migration not run yet) the old rules apply.
+export async function loadSchedule(env) {
+  const base = legacySchedule();
+  try {
+    const today = sarajevoNow().date;
+    const [w, d, x, s] = await env.DB.batch([
+      env.DB.prepare('SELECT dow, closed, open_min, close_min FROM hours_weekly'),
+      env.DB.prepare('SELECT date, closed, open_min, close_min FROM hours_dates WHERE date >= ?').bind(today),
+      env.DB.prepare('SELECT id, label, percent, start_min, end_min, dows, date_from, date_to, zone FROM discounts WHERE active = 1'),
+      env.DB.prepare('SELECT key, value FROM settings')
+    ]);
+    if (!(w.results || []).length) return base; // tables exist but were never filled
+    const weekly = { ...base.weekly };
+    for (const r of w.results) weekly[r.dow] = { closed: !!r.closed, open: toNum(r.open_min), close: toNum(r.close_min) };
+    const dates = {};
+    for (const r of d.results || []) dates[r.date] = { closed: !!r.closed, open: toNum(r.open_min), close: toNum(r.close_min) };
+    const discounts = (x.results || []).map((r) => ({
+      id: r.id, label: r.label || '', percent: +r.percent, start: +r.start_min, end: +r.end_min,
+      dows: r.dows ? String(r.dows).split(',').filter((v) => v !== '').map(Number) : null,
+      from: r.date_from || null, to: r.date_to || null, zone: r.zone || null
+    }));
+    const set = Object.fromEntries((s.results || []).map((r) => [r.key, r.value]));
+    const maxDays = Number.isInteger(+set.max_days) && +set.max_days >= 0 && set.max_days !== '' ? +set.max_days : MAX_DAYS;
+    const openUntil = /^\d{4}-\d{2}-\d{2}$/.test(set.open_until || '') ? set.open_until : OPEN_UNTIL;
+    return { weekly, dates, discounts, maxDays, openUntil, legacy: false };
+  } catch (e) {
+    console.error('loadSchedule fallback', e);
+    return base;
+  }
+}
+
+// [open, close] in minutes, or null when that date is closed.
+export function hoursOf(sch, date) {
+  const o = sch.dates[date];
+  if (o) {
+    if (o.closed) return null;
+    if (o.open != null && o.close != null) return [o.open, o.close];
+  }
+  const w = sch.weekly[dowOf(date)];
+  return !w || w.closed || w.open == null || w.close == null ? null : [w.open, w.close];
+}
+// Kept for older callers: hours with the old fallback rules.
+export const hoursFor = (date) => hoursOf(legacySchedule(), date) || [OPEN, CLOSE];
+
+// Discount for a booking that starts at `start` (minutes) and lasts `dur` hours. Only the part of the
+// booking that falls inside a discount window gets the discount, so the result is a weighted average.
+export function discountFor(sch, zone, date, start, dur) {
+  const dow = dowOf(date);
+  const ds = (sch.discounts || []).filter((x) => (!x.zone || x.zone === zone) && (!x.from || date >= x.from) && (!x.to || date <= x.to) && (!x.dows || x.dows.includes(dow)));
+  let sum = 0, steps = 0, best = null;
+  for (let t = start; t < start + dur * 60; t += STEP) {
+    steps++;
+    let m = 0, who = null;
+    for (const x of ds) if (t >= x.start && t < x.end && x.percent > m) { m = x.percent; who = x; }
+    sum += m;
+    if (who && (!best || who.percent > best.percent)) best = who;
+  }
+  return { pct: steps ? sum / steps : 0, label: best ? best.label : '' };
+}
+// Summary of one date for the day picker: highest discount that day and whether the whole day is free.
+export function dayDeals(sch, date, open, close) {
+  const dow = dowOf(date);
+  let deal = 0, free = false;
+  for (const x of sch.discounts || []) {
+    if ((x.from && date < x.from) || (x.to && date > x.to) || (x.dows && !x.dows.includes(dow))) continue;
+    if (x.start >= close || x.end <= open) continue;
+    deal = Math.max(deal, x.percent);
+    if (x.percent >= 100 && !x.zone && x.start <= open && x.end >= close) free = true;
+  }
+  return { deal, free };
+}
+
+// Total for a booking. `pct` = promo code percent. With `sch` and `start`, the schedule discount applies too and the higher of the two wins.
+// Without `sch` the old rule (free dates) applies, so older callers keep working. Rounded to 0,5 KM.
+export const total = (zone, dur, persons, date, pct = 0, start = null, sch = null) => {
+  const base = PRICES[zone][dur] * persons;
+  if (!sch) return isFree(date) ? 0 : roundHalf(base * (1 - pct / 100));
+  const sp = start == null ? 0 : discountFor(sch, zone, date, start, dur).pct;
+  return Math.max(0, roundHalf(base * (1 - Math.max(pct, sp) / 100)));
+};
+
+export function checkQuery(q, sch = legacySchedule()) {
   if (!['ind', 'lounge'].includes(q.zone)) return 'Nepoznata zona.';
   if (PRICES[q.zone][q.dur] === undefined) return q.zone === 'lounge' && q.dur === 6 ? 'Lounge zona se rezerviše do 4 sata.' : 'Nepoznato trajanje.';
   const maxP = MAX_PERSONS, minP = 1;
   if (!Number.isInteger(q.persons) || q.persons < minP || q.persons > maxP) return 'Neispravan broj osoba.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date)) return 'Neispravan datum.';
   const d = dayNum(q.date), n = dayNum(sarajevoNow().date);
-  if (new Date(d * 86400000).getUTCDay() === 0) return 'Nedjeljom ne radimo.';
   if (q.date > BOOKING_UNTIL) return 'Rezervacije za taj datum još nisu otvorene.';
-  if (new Date(d * 86400000).getUTCDay() === 6 && q.date > SAT_CLOSED_AFTER) return 'Subotom zasad ne radimo.';
-  if (d < n || d > Math.max(n + MAX_DAYS, dayNum(OPEN_UNTIL))) return 'Datum je van raspona.';
+  if (!hoursOf(sch, q.date)) return dowOf(q.date) === 0 ? 'Nedjeljom ne radimo.' : 'Taj dan ne radimo.';
+  if (d < n || d > Math.max(n + sch.maxDays, dayNum(sch.openUntil))) return 'Datum je van raspona.';
   if (q.zone === 'lounge' && !CAPACITY.lounge) return 'Lounge zona još nije dostupna za online rezervaciju.';
   return null;
 }
@@ -110,8 +212,10 @@ export function tableFor(q, start, bookings) {
   return steps.every((t) => used(t, (b) => b.zone === q.zone) + q.persons <= cap) ? 0 : -1;
 }
 
-export function freeStarts(q, bookings, blocks) {
-  const out = [], now = sarajevoNow(), [open, close] = hoursFor(q.date);
+export function freeStarts(q, bookings, blocks, sch = legacySchedule()) {
+  const out = [], now = sarajevoNow(), h = hoursOf(sch, q.date);
+  if (!h) return out;
+  const [open, close] = h;
   for (let s = open; s + q.dur * 60 <= close; s += STEP) {
     const e = s + q.dur * 60;
     if (q.date === now.date && s < now.min + LEAD_MIN) continue;
