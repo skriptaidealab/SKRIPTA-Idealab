@@ -1,4 +1,4 @@
-import { checkQuery, tableFor, loadDay, total, priceText, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
+import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
 import { esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }) {
   if (day.blocks.some((x) => start < x.end_min + BUFFER_MIN && end > x.start_min - BUFFER_MIN)) issues.push('cijeli prostor je zauzet (najam)');
   if (issues.length) return json({ ok: false, conflict: true, error: issues.join('; ') }, 409);
 
-  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date);
+  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date, 0, start, await loadSchedule(env)); // schedule discounts apply to staff bookings too
   await env.DB.prepare("INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,'confirmed',?,?,?,?,?,?,?,?,?)")
     .bind(id, new Date().toISOString(), q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
   const r = await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();

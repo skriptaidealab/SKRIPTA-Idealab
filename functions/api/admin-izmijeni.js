@@ -1,4 +1,4 @@
-import { checkQuery, tableFor, loadDay, total, priceText, promoPctOf, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
+import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, promoPctOf, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
 import { esc, makeToken, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../_lib/graph.js';
@@ -53,7 +53,7 @@ export async function onRequestPost({ request, env }) {
   if (issue) return json({ ok: false, conflict: true, error: 'Nije moguće: ' + issue + '.' }, 409);
 
   const old = { ...b };
-  const sum = total(b.zone, q.dur, b.persons, q.date, promoPctOf(b)); // a booking keeps its promo discount
+  const sum = total(b.zone, q.dur, b.persons, q.date, promoPctOf(b), start, await loadSchedule(env)); // a booking keeps its promo discount
   await env.DB.prepare('UPDATE bookings SET date = ?, start_min = ?, dur_h = ?, total = ?, reminded = 0 WHERE id = ?').bind(q.date, start, q.dur, sum, b.id).run();
   const r = await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(b.id).first();
 
