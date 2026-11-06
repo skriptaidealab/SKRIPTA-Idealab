@@ -1,4 +1,4 @@
-import { checkQuery, freeStarts, loadDay, total, priceText, applyPromo, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, loadSchedule, discountFor, total, priceText, applyPromo, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean, emailDomainBad } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
@@ -9,21 +9,23 @@ export async function onRequestPost({ request, env }) {
   if (b.web) return json({ ok: true }); // honeypot: bots fill this hidden field
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
   const start = +b.pocetak, name = clean(b.ime, 100), email = clean(b.email, 160), phone = clean(b.telefon, 40);
-  const err = checkQuery(q) || (name.split(/\s+/).length < 2 ? 'Upiši ime i prezime.' : !isEmail(email) ? 'Upiši ispravan email.' : !/^\+?[\d\s().\/-]{6,}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15 ? 'Upiši ispravan broj telefona.' : null);
+  const sch = await loadSchedule(env);
+  const err = checkQuery(q, sch) || (name.split(/\s+/).length < 2 ? 'Upiši ime i prezime.' : !isEmail(email) ? 'Upiši ispravan email.' : !/^\+?[\d\s().\/-]{6,}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15 ? 'Upiši ispravan broj telefona.' : null);
   if (err) return json({ ok: false, error: err }, 400);
   if (await emailDomainBad(email)) return json({ ok: false, error: 'Provjeri email, domena izgleda pogrešno.' }, 400);
   let day;
   try { day = await loadDay(env, q.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Pišite nam na info@skripta.ba.' }, 503); }
   const { bookings, blocks } = day;
-  if (!freeStarts(q, bookings, blocks).includes(start)) return json({ ok: false, error: 'Taj termin više nije slobodan. Odaberite drugi.' }, 409);
+  if (!freeStarts(q, bookings, blocks, sch).includes(start)) return json({ ok: false, error: 'Taj termin više nije slobodan. Odaberite drugi.' }, 409);
 
   let promo = null;
   const kod = clean(b.kod, 30);
   if (kod) {
     try { promo = await applyPromo(env, kod, { ...q, email, phone }); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera promo koda nije uspjela. Pokušaj opet.' }, 503); }
     if (!promo.ok) return json({ ok: false, error: promo.error, promo: true }, 400);
+    if (discountFor(sch, q.zone, q.date, start, q.dur).pct >= promo.pct) promo = null; // the schedule discount is already as good: the code is not used up
   }
-  const id = newId(), sum = promo ? promo.total : total(q.zone, q.dur, q.persons, q.date);
+  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date, promo ? promo.pct : 0, start, sch);
   // The promo column comes from migrations/2026-11-06-promo.sql; without a code the old insert still works.
   if (promo) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo.code).run();
