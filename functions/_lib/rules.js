@@ -35,11 +35,14 @@ export const CAPACITY = { ind: 15, lounge: 9 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 // Promo codes. Key = code in CAPITAL letters. Fields: pct (percent off, 1-100), from / until (first and last booking DATE it applies to, optional),
-// maxDur (longest booking in hours, optional), zones (['ind'] or ['lounge'], optional), max (most bookings that may use it, optional), note (internal).
+// maxDur (longest booking in hours, optional), perGuest (most active bookings per guest, matched by e-mail or phone, optional), zones (['ind'] or ['lounge'], optional), max (most bookings that may use it, optional), note (internal).
 export const PROMOS = {
-  OPENDAYS: { pct: 50, from: '2026-11-09', until: '2026-11-13', maxDur: 4, note: 'Open days: 50% na rezervacije do 4 h, termini 9. do 13.11.' },
+  OPENDAYS: { pct: 50, from: '2026-11-09', until: '2026-11-13', maxDur: 4, perGuest: 1, note: 'Open days: 50% na rezervacije do 4 h, termini 9. do 13.11., jedna rezervacija po gostu.' },
   // 'PRIMJER10': { pct: 10, until: '2026-12-31', zones: ['ind'], max: 50, note: 'primjer' },
 };
+// Same guest = same e-mail (Gmail dots and +tags ignored) or same phone (last 8 digits).
+const mailKey = (e) => { let [u, d] = String(e || '').toLowerCase().trim().split('@'); u = (u || '').split('+')[0]; if (d === 'gmail.com' || d === 'googlemail.com') { u = u.replace(/\./g, ''); d = 'gmail.com'; } return `${u}@${d}`; };
+const phoneKey = (p) => String(p || '').replace(/\D/g, '').slice(-8);
 const dm = (d) => `${+d.slice(8)}.${+d.slice(5, 7)}.`;
 export const roundHalf = (n) => Math.round(n * 2) / 2; // prices are rounded to 0,5 KM
 export const kmNum = (n) => String(n).replace('.', ',');
@@ -58,6 +61,12 @@ export async function applyPromo(env, raw, q) {
   if (p.max) {
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM bookings WHERE promo = ? AND status IN ('pending','confirmed')").bind(code).first();
     if ((n?.n || 0) >= p.max) return { ok: false, error: 'Promo kod je iskorišten.' };
+  }
+  if (p.perGuest && (q.email || q.phone)) {
+    const { results } = await env.DB.prepare("SELECT email, phone FROM bookings WHERE promo = ? AND status IN ('pending','confirmed')").bind(code).all();
+    const mk = q.email ? mailKey(q.email) : null, pk = q.phone && phoneKey(q.phone).length >= 8 ? phoneKey(q.phone) : null;
+    const used = (results || []).filter((r) => (mk && mailKey(r.email) === mk) || (pk && phoneKey(r.phone) === pk)).length;
+    if (used >= p.perGuest) return { ok: false, error: 'Promo kod važi za jednu rezervaciju po gostu, a već je iskorišten s tim emailom ili telefonom.' };
   }
   return { ok: true, code, pct: p.pct, base: total(q.zone, q.dur, q.persons, q.date), total: total(q.zone, q.dur, q.persons, q.date, p.pct) };
 }

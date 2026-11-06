@@ -180,7 +180,7 @@
     if (!code) { state.promo = null; promoMsg(manual ? 'Upiši promo kod.' : '', ''); update(); return; }
     var sig = promoSig(); state.promoSig = sig;
     el.promoBtn.disabled = true;
-    fetch('/api/promo?kod=' + encodeURIComponent(code) + '&zona=' + state.zone + '&trajanje=' + state.dur + '&osobe=' + persons() + '&datum=' + el.date.value, { cache: 'no-store' })
+    fetch('/api/promo?kod=' + encodeURIComponent(code) + '&zona=' + state.zone + '&trajanje=' + state.dur + '&osobe=' + persons() + '&datum=' + el.date.value + '&email=' + encodeURIComponent(el.email.value.trim()) + '&telefon=' + encodeURIComponent(el.phone.value.trim()), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         el.promoBtn.disabled = false;
@@ -193,6 +193,8 @@
   }
   if (el.promoBtn) {
     el.promoBtn.addEventListener('click', function () { checkPromo(true); });
+    /* the one-per-guest limit depends on e-mail and phone, so check again when they change */
+    [el.email, el.phone].forEach(function (f) { f.addEventListener('change', function () { if (el.promo.value.trim()) checkPromo(false); }); });
     el.promo.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); checkPromo(true); } });
     el.promo.addEventListener('input', function () { if (state.promo && el.promo.value.trim().toUpperCase() !== state.promo.code) { state.promo = null; promoMsg('', ''); update(); } });
   }

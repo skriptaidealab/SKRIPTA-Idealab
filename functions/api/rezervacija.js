@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
   let promo = null;
   const kod = clean(b.kod, 30);
   if (kod) {
-    try { promo = await applyPromo(env, kod, q); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera promo koda nije uspjela. Pokušaj opet.' }, 503); }
+    try { promo = await applyPromo(env, kod, { ...q, email, phone }); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera promo koda nije uspjela. Pokušaj opet.' }, 503); }
     if (!promo.ok) return json({ ok: false, error: promo.error, promo: true }, 400);
   }
   const id = newId(), sum = promo ? promo.total : total(q.zone, q.dur, q.persons, q.date);

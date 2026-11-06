@@ -4,7 +4,7 @@ import { json, clean } from '../_lib/util.js';
 // GET /api/promo?kod=&zona=&trajanje=&osobe=&datum= : preview of the discounted price. The booking POST checks the code again.
 export async function onRequestGet({ request, env }) {
   const u = new URL(request.url).searchParams;
-  const q = { zone: clean(u.get('zona'), 10), dur: +u.get('trajanje'), persons: +u.get('osobe') || 1, date: clean(u.get('datum'), 10) };
+  const q = { zone: clean(u.get('zona'), 10), dur: +u.get('trajanje'), persons: +u.get('osobe') || 1, date: clean(u.get('datum'), 10), email: clean(u.get('email'), 160), phone: clean(u.get('telefon'), 40) };
   const err = checkQuery(q);
   if (err) return json({ ok: false, error: err }, 400);
   let r;
