@@ -16,9 +16,11 @@
     sZone: $('#s-zone'), sWhen: $('#s-when'), sPeople: $('#s-people'), sDur: $('#s-dur'),
     total: $('#s-total'), totalSub: $('#s-total-sub'), btn: $('#b-confirm'),
     need: $('#b-need'), pOut: $('#b-persons-out'), minus: $('#b-minus'), plus: $('#b-plus'),
+    promoWrap: $('#b-promo-wrap'), promo: $('#b-promo'), promoBtn: $('#b-promo-btn'), promoErr: $('#e-promo'), promoOk: $('#o-promo'),
     name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), news: $('#b-news'), out: $('#b-out'), err: $('#b-err')
   };
-  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0 };
+  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0, promo: null, promoSig: '' };
+  function km(n) { return String(n).replace('.', ','); }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function fmt(min) { return pad(Math.floor(min / 60)) + ':' + pad(min % 60); }
@@ -162,8 +164,41 @@
 
   var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
   function isFree() { return FREE_DATES.indexOf(el.date.value) >= 0; }
+  /* Price for the current choice, with the promo discount when a code is applied (server rounds the same way, to 0,5 KM). */
+  function curTotal() {
+    if (isFree()) return 0;
+    var raw = PRICES[state.zone][state.dur] * persons() * (state.promo ? 1 - state.promo.pct / 100 : 1);
+    return Math.round(raw * 2) / 2;
+  }
+  function promoSig() { return [state.zone, state.dur, persons(), el.date.value].join('|'); }
+  function promoMsg(err, ok) {
+    if (el.promoErr) { el.promoErr.textContent = err || ''; el.promoErr.hidden = !err; }
+    if (el.promoOk) { el.promoOk.textContent = ok || ''; el.promoOk.hidden = !ok; }
+  }
+  function checkPromo(manual) {
+    var code = el.promo.value.trim();
+    if (!code) { state.promo = null; promoMsg(manual ? 'Upiši promo kod.' : '', ''); update(); return; }
+    var sig = promoSig(); state.promoSig = sig;
+    el.promoBtn.disabled = true;
+    fetch('/api/promo?kod=' + encodeURIComponent(code) + '&zona=' + state.zone + '&trajanje=' + state.dur + '&osobe=' + persons() + '&datum=' + el.date.value, { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        el.promoBtn.disabled = false;
+        if (sig !== promoSig()) return;
+        if (j && j.ok) { state.promo = { code: j.code, pct: j.pct }; el.promo.value = j.code; promoMsg('', 'Kod primijenjen: ' + j.pct + '% popusta.'); }
+        else { state.promo = null; promoMsg((j && j.error) || 'Promo kod nije ispravan.', ''); }
+        update();
+      })
+      .catch(function () { el.promoBtn.disabled = false; state.promo = null; promoMsg('Provjera nije uspjela. Pokušaj opet.', ''); update(); });
+  }
+  if (el.promoBtn) {
+    el.promoBtn.addEventListener('click', function () { checkPromo(true); });
+    el.promo.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); checkPromo(true); } });
+    el.promo.addEventListener('input', function () { if (state.promo && el.promo.value.trim().toUpperCase() !== state.promo.code) { state.promo = null; promoMsg('', ''); update(); } });
+  }
   function update() {
-    var n = persons(), p = PRICES[state.zone][state.dur], total = isFree() ? 0 : p * n;
+    var n = persons(), p = PRICES[state.zone][state.dur], total = curTotal();
+    if (state.promo && state.promoSig !== promoSig() && state.promoSig) checkPromo(false); // zone, date or length changed: check the code again
     el.sZone.textContent = NAMES[state.zone];
     el.sDur.textContent = state.dur + (state.dur === 1 ? ' sat' : (state.dur < 5 ? ' sata' : ' sati'));
     el.sPeople.textContent = n + (n === 1 ? ' osoba' : ' osobe');
@@ -171,9 +206,9 @@
       var d = parseDate(el.date.value);
       el.sWhen.textContent = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. u ' + fmt(state.start) + ' do ' + fmt(state.start + state.dur * 60);
     } else el.sWhen.textContent = 'Odaberi termin';
-    el.total.textContent = isFree() ? 'Besplatno' : total + ' KM';
+    el.total.textContent = isFree() ? 'Besplatno' : km(total) + ' KM';
     if (isFree()) el.totalSub.textContent = 'Jedva čekamo da dođeš!' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
-    else el.totalSub.textContent = (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
+    else el.totalSub.textContent = (state.promo ? 'Promo kod ' + state.promo.code + ': ' + state.promo.pct + '% popusta. ' : '') + (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
     syncPersons(); needUpdate();
     el.out.hidden = true; el.err.hidden = true;
@@ -207,7 +242,7 @@
     var bad = ['name', 'email', 'phone'].filter(function (k) { return validate(k, true); });
     if (bad.length) { el[bad[0]].focus(); return fail(bad.length > 1 ? 'Dopuni označena polja.' : fieldErr(bad[0]).textContent); }
     el.err.hidden = true;
-    var n = persons(), total = isFree() ? 0 : PRICES[state.zone][state.dur] * n;
+    var n = persons(), total = curTotal();
     if (!state.live) {
       el.out.innerHTML = '<span class="stamp">DEMO · NIJE STVARNA REZERVACIJA</span><p><b>Primjer</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + esc(el.sPeople.textContent) + '.</p><p>' + (total === 0 ? 'Besplatno' : 'Ukupno ' + total + ' KM, plaćanje po dolasku') + '. Ništa nije poslano niti spremljeno.</p>';
       el.out.hidden = false; return;
@@ -215,12 +250,12 @@
     el.btn.disabled = true; el.btn.textContent = 'Šaljem...';
     fetch('/api/rezervacija', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, novosti: !!(el.news && el.news.checked), web: el.web.value })
+      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, novosti: !!(el.news && el.news.checked), kod: el.promo ? el.promo.value.trim() : '', web: el.web.value })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
       .then(function (res) {
         el.btn.textContent = 'Pošalji zahtjev';
-        if (!res.ok) { el.btn.disabled = false; if (res.j && /slobodan/.test(res.j.error || '')) renderSlots(); return fail((res.j && res.j.error) || 'Slanje nije uspjelo.'); }
-        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + (total === 0 ? 'besplatno. Jedva čekamo da dođeš!' : 'ukupno ' + total + ' KM.') + '</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
+        if (!res.ok) { el.btn.disabled = false; if (res.j && /slobodan/.test(res.j.error || '')) renderSlots(); if (res.j && res.j.promo) { state.promo = null; promoMsg(res.j.error, ''); update(); el.promo.focus(); return fail('Provjeri promo kod.'); } return fail((res.j && res.j.error) || 'Slanje nije uspjelo.'); }
+        el.out.innerHTML = '<p><b>Zahtjev je poslan.</b></p><p>' + esc(NAMES[state.zone]) + ', ' + esc(el.sWhen.textContent) + ', ' + (total === 0 ? 'besplatno. Jedva čekamo da dođeš!' : 'ukupno ' + km(total) + ' KM.') + '</p><p>Rezervacija <b>nije potvrđena</b> dok ti ne potvrdimo emailom na ' + esc(email) + '. Provjeri i spam.</p>';
         el.out.hidden = false; el.btn.hidden = true; if (el.need) el.need.hidden = true;
         try { el.out.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
       })
@@ -268,6 +303,7 @@
     state.live = live;
     if (el.flag) el.flag.hidden = live;
     el.btn.textContent = live ? 'Pošalji zahtjev' : 'Prikaži primjer';
+    if (el.promoWrap) el.promoWrap.hidden = !live;
     renderSlots();
   }
   /* detect API: live only if it answers with JSON */

@@ -34,8 +34,41 @@ export const zoneLabel = (b) => NAMES[b.zone] + (b.persons > 1 ? `, ${b.persons}
 export const CAPACITY = { ind: 15, lounge: 9 };
 
 export const fmt = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-export const total = (zone, dur, persons, date) => (isFree(date) ? 0 : PRICES[zone][dur] * persons);
-export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${sum} KM, plaćanje po dolasku`);
+// Promo codes. Key = code in CAPITAL letters. Fields: pct (percent off, 1-100), from / until (first and last booking DATE it applies to, optional),
+// maxDur (longest booking in hours, optional), zones (['ind'] or ['lounge'], optional), max (most bookings that may use it, optional), note (internal).
+export const PROMOS = {
+  OPENDAYS: { pct: 50, from: '2026-11-09', until: '2026-11-13', maxDur: 4, note: 'Open days: 50% na rezervacije do 4 h, termini 9. do 13.11.' },
+  // 'PRIMJER10': { pct: 10, until: '2026-12-31', zones: ['ind'], max: 50, note: 'primjer' },
+};
+const dm = (d) => `${+d.slice(8)}.${+d.slice(5, 7)}.`;
+export const roundHalf = (n) => Math.round(n * 2) / 2; // prices are rounded to 0,5 KM
+export const kmNum = (n) => String(n).replace('.', ',');
+export const total = (zone, dur, persons, date, pct = 0) => (isFree(date) ? 0 : roundHalf(PRICES[zone][dur] * persons * (1 - pct / 100)));
+export const priceText = (sum) => (sum === 0 ? 'Besplatno. Jedva čekamo da dođeš!' : `${kmNum(sum)} KM, plaćanje po dolasku`);
+// Checks a promo code for a booking query. Returns { ok, code, pct, base, total } or { ok: false, error }.
+export async function applyPromo(env, raw, q) {
+  const code = String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
+  const p = PROMOS[code];
+  const bad = { ok: false, error: 'Promo kod nije ispravan.' };
+  if (!code || !Object.prototype.hasOwnProperty.call(PROMOS, code)) return bad;
+  if (isFree(q.date)) return { ok: false, error: 'Tog dana je rezervacija besplatna, promo kod nije potreban.' };
+  if ((p.from && q.date < p.from) || (p.until && q.date > p.until)) return { ok: false, error: p.from && p.until ? `Promo kod važi za rezervacije od ${dm(p.from)} do ${dm(p.until)}.` : 'Promo kod ne važi za taj datum.' };
+  if (p.maxDur && q.dur > p.maxDur) return { ok: false, error: `Promo kod važi za rezervacije do ${p.maxDur} sata.` };
+  if (p.zones && !p.zones.includes(q.zone)) return { ok: false, error: `Promo kod važi samo za ${p.zones.map((z) => NAMES[z]).join(' i ')}.` };
+  if (p.max) {
+    const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM bookings WHERE promo = ? AND status IN ('pending','confirmed')").bind(code).first();
+    if ((n?.n || 0) >= p.max) return { ok: false, error: 'Promo kod je iskorišten.' };
+  }
+  return { ok: true, code, pct: p.pct, base: total(q.zone, q.dur, q.persons, q.date), total: total(q.zone, q.dur, q.persons, q.date, p.pct) };
+}
+// Discount percent of a stored booking (code lookup, else derived from the stored price), so rescheduling keeps it.
+export function promoPctOf(b) {
+  if (!b.promo) return 0;
+  if (PROMOS[b.promo]) return PROMOS[b.promo].pct;
+  const base = PRICES[b.zone]?.[b.dur_h] * b.persons;
+  return base && b.total < base ? Math.round((1 - b.total / base) * 100) : 0;
+}
+export const promoLine = (b) => (b.promo ? `${b.promo}, ${promoPctOf(b)}% popusta` : '');
 
 export function sarajevoNow(at = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);

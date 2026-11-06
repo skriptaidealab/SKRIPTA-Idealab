@@ -1,4 +1,4 @@
-import { checkQuery, freeStarts, loadDay, total, priceText, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
+import { checkQuery, freeStarts, loadDay, total, priceText, applyPromo, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
 import { json, esc, makeToken, newId, isEmail, clean, emailDomainBad } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
@@ -17,8 +17,17 @@ export async function onRequestPost({ request, env }) {
   const { bookings, blocks } = day;
   if (!freeStarts(q, bookings, blocks).includes(start)) return json({ ok: false, error: 'Taj termin više nije slobodan. Odaberite drugi.' }, 409);
 
-  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date);
-  await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+  let promo = null;
+  const kod = clean(b.kod, 30);
+  if (kod) {
+    try { promo = await applyPromo(env, kod, q); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera promo koda nije uspjela. Pokušaj opet.' }, 503); }
+    if (!promo.ok) return json({ ok: false, error: promo.error, promo: true }, 400);
+  }
+  const id = newId(), sum = promo ? promo.total : total(q.zone, q.dur, q.persons, q.date);
+  // The promo column comes from migrations/2026-11-06-promo.sql; without a code the old insert still works.
+  if (promo) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo.code).run();
+  else await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
   if (b.novosti === true) await markOptIn(env, id); // acted on only when the booking is confirmed
@@ -26,7 +35,7 @@ export async function onRequestPost({ request, env }) {
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
-  const rows = [['Zona', zoneLabel(q)], ['Termin', when], ['Ukupno', priceText(sum)]];
+  const rows = [['Zona', zoneLabel(q)], ['Termin', when], ...(promo ? [['Promo kod', `${promo.code}, ${promo.pct}% popusta`]] : []), ['Ukupno', priceText(sum)]];
   const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   const withdraw = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, id, 'otkazi')}`;
   try {
