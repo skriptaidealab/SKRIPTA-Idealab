@@ -16,6 +16,7 @@ Ovaj folder (`functions/`) radi samo na Cloudflare Pages. Na GitHub Pages ne rad
    - `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET` (secret)
    - `MAILBOX` = info@skripta.ba (kalendar)
    - `BREVO_API_KEY` (secret), `BREVO_FROM` = info@skripta.ba: slanje mailova preko Brevo-a umjesto sandučića. Ako nije postavljeno, šalje se preko Microsofta.
+   - `BREVO_LIST_ID` = broj liste u Brevo-u za newsletter pretplatnike (uz `BREVO_API_KEY`). Dok nije postavljeno, koristi se MailerLite (`MAILERLITE_API_KEY`).
    - `SITE_URL` = https://www.skripta.ba
    - `SIGNING_SECRET` = dugačak nasumičan niz (secret)
 5. Nakon objave provjerite da `/functions/` izvorni kod nije dostupan kao statički fajl i da `_to_delete/` nije objavljen.

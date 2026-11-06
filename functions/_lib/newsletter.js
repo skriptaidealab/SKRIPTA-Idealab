@@ -11,7 +11,16 @@ export async function subscribeIfOptedIn(env, b) {
   } catch (e) { console.error(e); return; }
   const email = String(b.email).toLowerCase();
   try { await env.DB.prepare('INSERT OR IGNORE INTO subscribers (email, name, created_at, source) VALUES (?,?,?,?)').bind(email, b.name, new Date().toISOString(), 'rezervacija').run(); } catch (e) { console.error(e); }
-  if (!env.MAILERLITE_API_KEY) return;
+  // Brevo (preferirano): kontakt ide na listu BREVO_LIST_ID. updateEnabled = bez greške ako kontakt već postoji.
+  if (env.BREVO_API_KEY && env.BREVO_LIST_ID) {
+    try {
+      const parts = String(b.name).split(/\s+/), last = parts.length > 1 ? parts.pop() : '';
+      const r = await fetch('https://api.brevo.com/v3/contacts', { method: 'POST', headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ email, attributes: { FIRSTNAME: parts.join(' '), LASTNAME: last }, listIds: [Number(env.BREVO_LIST_ID)], updateEnabled: true }) });
+      if (!r.ok) console.error('Brevo contacts', r.status, (await r.text()).slice(0, 200));
+    } catch (e) { console.error(e); }
+    return;
+  }
+  if (!env.MAILERLITE_API_KEY) return; // stari put (MailerLite), koristi se dok Brevo nije postavljen
   try {
     const parts = String(b.name).split(/\s+/), last = parts.length > 1 ? parts.pop() : '';
     const body = { email, fields: { name: parts.join(' '), last_name: last } };
