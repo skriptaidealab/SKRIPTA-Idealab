@@ -16,9 +16,20 @@ async function call(env, method, path, body) {
   if (!r.ok && !(method === 'DELETE' && r.status === 404)) throw new Error(`Graph ${method} ${path} ${r.status} ${await r.text()}`);
   return r.status === 204 ? null : r.headers.get('content-type')?.includes('json') ? r.json() : null;
 }
+// Ako je postavljen BREVO_API_KEY, mailovi idu preko Brevo-a (ne preko sandučića info@), da Microsoft ne ograniči nalog.
+// From adresa je BREVO_FROM (default MAILBOX); domena skripta.ba mora biti autentificirana u Brevo-u (SPF/DKIM).
+async function sendBrevo(env, { to, subject, html, replyTo }) {
+  const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST', headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ sender: { name: env.BREVO_FROM_NAME || 'SKRIPTA', email: env.BREVO_FROM || env.MAILBOX }, to: [{ email: to }], subject, htmlContent: html, replyTo: { email: replyTo || env.MAILBOX } })
+  });
+  if (!r.ok) throw new Error('Brevo ' + r.status + ' ' + await r.text());
+  return null;
+}
 export function sendMail(env, { to, subject, html, replyTo }) {
   // TEST_MODE: nothing reaches real guests. Everything goes to TEST_RECIPIENT with a [TEST] prefix.
   if (env.TEST_MODE) { html = `<p style="color:#B5542F"><b>[TEST] originalni primalac: ${to}</b></p>` + html; subject = '[TEST] ' + subject; to = env.TEST_RECIPIENT || env.MAILBOX; }
+  if (env.BREVO_API_KEY) return sendBrevo(env, { to, subject, html, replyTo });
   return call(env, 'POST', '/sendMail', { message: { subject, body: { contentType: 'HTML', content: html }, toRecipients: [{ emailAddress: { address: to } }], ...(replyTo ? { replyTo: [{ emailAddress: { address: replyTo } }] } : {}) }, saveToSentItems: true });
 }
 const local = (date, min) => `${date}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}:00`;
