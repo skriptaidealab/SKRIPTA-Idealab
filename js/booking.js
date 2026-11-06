@@ -1,5 +1,6 @@
 /* SKRIPTA Coffice booking widget.
-   Live mode: talks to /api/dostupnost and /api/rezervacija (Cloudflare Pages Functions).
+   Live mode: talks to /api/dostupnost, /api/raspored, /api/cijena and /api/rezervacija (Cloudflare Pages Functions).
+   Open days, hours and discounts come from /api/raspored (edited on the occupancy dashboard).
    Demo mode (API not reachable, e.g. local preview): simulated availability, nothing is sent. */
 (function () {
   var root = document.getElementById('rezervacija');
@@ -19,7 +20,7 @@
     promoWrap: $('#b-promo-wrap'), promo: $('#b-promo'), promoBtn: $('#b-promo-btn'), promoErr: $('#e-promo'), promoOk: $('#o-promo'),
     name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), news: $('#b-news'), out: $('#b-out'), err: $('#b-err')
   };
-  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0, promo: null, promoSig: '' };
+  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0, promo: null, promoSig: '', sched: null, quote: null, quoting: '' };
   function km(n) { return String(n).replace('.', ','); }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -55,19 +56,26 @@
   }
 
   /* ---------- rendering ---------- */
-  function drawSlots(allowed, dur, open, close) {
-    open = open == null ? OPEN : open; close = close == null ? CLOSE : close;
+  function drawSlots(allowed, dur, open, close, deals) {
+    open = open == null ? OPEN : open; close = close == null ? CLOSE : close; deals = deals || {};
+    var anyDeal = false;
     el.slots.innerHTML = '';
     for (var t = open; t < close; t += STEP) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'slot'; b.textContent = fmt(t); b.dataset.t = t;
       b.disabled = allowed.indexOf(t) < 0;
+      if (!b.disabled && deals[t]) {
+        anyDeal = true;
+        var sm = document.createElement('small'); sm.textContent = '-' + deals[t] + '%';
+        sm.style.cssText = 'display:block;font-size:11px;font-weight:700;line-height:1.1;margin-top:2px';
+        b.appendChild(sm);
+      }
       if (t + dur > close) b.title = 'Nema dovoljno vremena do zatvaranja';
       b.setAttribute('aria-pressed', String(state.start === t));
       el.slots.appendChild(b);
     }
     if (state.start !== null && allowed.indexOf(state.start) < 0) state.start = null;
-    el.slotHint.textContent = allowed.length ? 'Prikazani su slobodni termini. Precrtani su zauzeti ili prekasni.' : 'Nema slobodnih termina za ovaj izbor. Probajte drugi datum ili kraće trajanje.';
+    el.slotHint.textContent = allowed.length ? 'Prikazani su slobodni termini. Precrtani su zauzeti ili prekasni.' + (anyDeal ? ' Oznaka -% znači popust u tom terminu.' : '') : 'Nema slobodnih termina za ovaj izbor. Probajte drugi datum ili kraće trajanje.';
     update();
   }
   function message(text) { el.dayMsg.textContent = text; el.dayMsg.hidden = false; el.slots.innerHTML = ''; el.slotHint.textContent = ''; state.start = null; update(); }
@@ -76,14 +84,18 @@
   var SAT_CLOSED_AFTER = '2026-11-08';
   // Dates after this are not bookable yet: show "uskoro" and collect an email (same constant as functions/_lib/rules.js).
   var BOOKING_UNTIL = '2099-12-31';
-  function closedDay(d) { return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER); }
+  // With the schedule from the server a day is open only if the schedule says so; without it (demo) the old rules apply.
+  function closedDay(d) {
+    if (state.sched) { var x = state.sched.days[iso(d)]; return !x || !!x.closed; }
+    return d.getDay() === 0 || (d.getDay() === 6 && iso(d) > SAT_CLOSED_AFTER);
+  }
+  function dayInfo(v) { return state.sched ? (state.sched.days[v] || null) : null; }
   function renderSlots() {
     var v = el.date.value;
     el.dayMsg.hidden = true;
-    if (!v) return;
+    if (!v) return message('Trenutno nema dana otvorenih za rezervaciju. Piši nam na info@skripta.ba.');
     var d = parseDate(v);
-    if (d.getDay() === 0) return message('Nedjeljom ne radimo (radno vrijeme je ponedjeljak do petka).');
-    if (closedDay(d)) return message('Subotom zasad ne radimo. Odaberi dan od ponedjeljka do petka.');
+    if (closedDay(d)) return message(d.getDay() === 0 ? 'Nedjeljom ne radimo.' : 'Taj dan ne radimo. Odaberi drugi dan.');
     if (v > BOOKING_UNTIL) return message('Rezervacije za taj datum još nisu otvorene.');
     var dur = state.dur * 60, n = persons();
     if (!state.live) {
@@ -98,7 +110,7 @@
         if (seq !== state.seq) return;
         if (!j.ok) return message(j.error || 'Termini trenutno nisu dostupni.');
         if (j.wholeSpace && !j.starts.length) return message('Taj dan je prostor zauzet. Probajte drugi datum.');
-        drawSlots(j.starts, dur, j.open, j.close);
+        drawSlots(j.starts, dur, j.open, j.close, j.popusti);
       })
       .catch(function () { if (seq === state.seq) message('Ne možemo učitati termine. Pokušaj ponovo ili nam piši na info@skripta.ba.'); });
   }
@@ -163,12 +175,29 @@
   if (el.plus) el.plus.addEventListener('click', function () { setPersons(persons() + 1); });
 
   var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
-  function isFree() { return FREE_DATES.indexOf(el.date.value) >= 0; }
+  function isFree() {
+    var v = el.date.value, x = dayInfo(v);
+    return x ? !!x.free : (!state.sched && FREE_DATES.indexOf(v) >= 0);
+  }
+  /* Server quote for the chosen start time (discount aware). Display only: the server calculates the price again on submit. */
+  function quoteKey() { return [state.zone, state.dur, persons(), el.date.value, state.start].join('|'); }
+  function currentQuote() { return state.quote && state.quote.key === quoteKey() ? state.quote : null; }
+  function requestQuote() {
+    if (!state.live || state.start === null || currentQuote()) return;
+    var key = quoteKey(); if (state.quoting === key) return;
+    state.quoting = key;
+    var base = PRICES[state.zone][state.dur] * persons(), none = { key: key, base: base, pct: 0, label: '' };
+    fetch('/api/cijena?zona=' + state.zone + '&trajanje=' + state.dur + '&osobe=' + persons() + '&datum=' + el.date.value + '&pocetak=' + state.start, { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { state.quote = j && j.ok ? { key: key, base: j.base, pct: j.pct, label: j.label } : none; })
+      .catch(function () { state.quote = none; })
+      .then(function () { state.quoting = ''; update(); });
+  }
   /* Price for the current choice, with the promo discount when a code is applied (server rounds the same way, to 0,5 KM). */
   function curTotal() {
     if (isFree()) return 0;
-    var raw = PRICES[state.zone][state.dur] * persons() * (state.promo ? 1 - state.promo.pct / 100 : 1);
-    return Math.round(raw * 2) / 2;
+    var q = currentQuote(), pct = Math.max(state.promo ? state.promo.pct : 0, q ? q.pct : 0); // the better of promo code and schedule discount
+    return Math.max(0, Math.round(PRICES[state.zone][state.dur] * persons() * (1 - pct / 100) * 2) / 2);
   }
   function promoSig() { return [state.zone, state.dur, persons(), el.date.value].join('|'); }
   function promoMsg(err, ok) {
@@ -208,12 +237,16 @@
       var d = parseDate(el.date.value);
       el.sWhen.textContent = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '. u ' + fmt(state.start) + ' do ' + fmt(state.start + state.dur * 60);
     } else el.sWhen.textContent = 'Odaberi termin';
-    el.total.textContent = isFree() ? 'Besplatno' : km(total) + ' KM';
-    if (isFree()) el.totalSub.textContent = 'Jedva čekamo da dođeš!' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
+    var q = currentQuote(), tail = state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '';
+    var dealWins = q && q.pct > 0 && q.pct >= (state.promo ? state.promo.pct : 0);
+    el.total.textContent = total === 0 ? 'Besplatno' : km(total) + ' KM';
+    if (total === 0) el.totalSub.textContent = 'Jedva čekamo da dođeš!' + tail;
+    else if (dealWins) el.totalSub.textContent = 'Popust ' + (Math.round(q.pct * 10) / 10) + '%' + (q.label ? ' (' + q.label + ')' : '') + ' je uračunat, redovna cijena je ' + km(q.base) + ' KM. PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + tail;
     else el.totalSub.textContent = (state.promo ? 'Promo kod ' + state.promo.code + ': ' + state.promo.pct + '% popusta. ' : '') + (n > 1 ? n + ' × ' + p + ' KM po osobi. ' : '') + 'PDV uključen. Kafa ili čaj su besplatni. Plaćanje po dolasku.' + (state.live ? ' Rezervacija je potvrđena tek kad ti potvrdimo emailom.' : '');
     el.btn.disabled = state.start === null;
     syncPersons(); needUpdate();
     el.out.hidden = true; el.err.hidden = true;
+    requestQuote();
   }
 
   /* Lounge is bookable up to 4 hours only: hide 6 h there and step back to 4 h if it was selected. */
@@ -264,28 +297,23 @@
       .catch(function () { el.btn.disabled = false; el.btn.textContent = 'Pošalji zahtjev'; fail('Slanje nije uspjelo. Piši nam na info@skripta.ba.'); });
   });
 
-  /* ---------- init ---------- */
-  var d0 = new Date(), min = new Date(d0);
-  if (d0.getHours() >= 19) min.setDate(min.getDate() + 1);
-  while (closedDay(min)) min.setDate(min.getDate() + 1);
-  var max = new Date(d0); max.setDate(max.getDate() + 5);
-  var openUntil = parseDate('2026-11-14'); if (openUntil > max) max = openUntil;
-  el.date.min = iso(min); el.date.max = iso(max); el.date.value = iso(min);
+  /* ---------- init: date range ---------- */
   /* ---------- day picker: Sundays are shown but cannot be clicked ---------- */
   var WD = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
   function drawDays() {
     var box = document.getElementById('b-days'); if (!box) return;
     box.innerHTML = '';
+    if (!el.date.min || !el.date.max) return;
     var d = parseDate(el.date.min), end = parseDate(el.date.max), anySoon = false;
     for (; d <= end; d.setDate(d.getDate() + 1)) {
-      if (d.getDay() === 6 && closedDay(d)) continue; // closed Saturdays are not shown at all
-      var v = iso(d), b = document.createElement('button');
+      if (!state.sched && d.getDay() === 6 && closedDay(d)) continue; // demo: closed Saturdays are not shown at all
+      var v = iso(d), b = document.createElement('button'), x = dayInfo(v), chip = '';
       b.type = 'button'; b.className = 'day'; b.dataset.d = v;
       var notYet = v > BOOKING_UNTIL && !closedDay(d);
       if (notYet) { anySoon = true; b.className = 'day soon'; }
       b.disabled = closedDay(d) || notYet;
       b.setAttribute('aria-pressed', String(el.date.value === v));
-      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : (notYet ? '<i class="soon">uskoro</i>' : ''));
+      b.innerHTML = '<small>' + WD[d.getDay()] + '</small><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b>' + (x && !x.closed && x.free ? '<i>besplatno</i>' : (x && !x.closed && x.deal > 0 ? '<i>popust</i>' : (!state.sched && FREE_DATES.indexOf(v) >= 0 ? '<i>besplatno</i>' : (notYet ? '<i class="soon">uskoro</i>' : ''))));
       box.appendChild(b);
     }
     var sb = document.getElementById('b-soon'); if (sb) sb.hidden = !anySoon;
@@ -297,21 +325,52 @@
     };
   }
 
-  var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
-  if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && dm[1] <= BOOKING_UNTIL && !closedDay(parseDate(dm[1]))) el.date.value = dm[1];
-  drawDays();
+  // Date range and first open day. With a schedule from the server the range comes from there; otherwise the old rules apply.
+  function initDates(keep) {
+    var cur = keep ? el.date.value : '';
+    if (state.sched) { el.date.min = state.sched.from; el.date.max = state.sched.to; }
+    else {
+      var d0 = new Date(), min = new Date(d0);
+      if (d0.getHours() >= 19) min.setDate(min.getDate() + 1);
+      while (closedDay(min)) min.setDate(min.getDate() + 1);
+      var max = new Date(d0); max.setDate(max.getDate() + 5);
+      var openUntil = parseDate('2026-11-14'); if (openUntil > max) max = openUntil;
+      el.date.min = iso(min); el.date.max = iso(max);
+    }
+    if (!(cur && cur >= el.date.min && cur <= el.date.max && cur <= BOOKING_UNTIL && !closedDay(parseDate(cur)))) {
+      cur = '';
+      for (var d = parseDate(el.date.min), end = parseDate(el.date.max); d <= end; d.setDate(d.getDate() + 1)) {
+        if (closedDay(d)) continue;
+        if (iso(d) === iso(new Date()) && new Date().getHours() >= 19) continue; // after 19:00 start with tomorrow
+        cur = iso(d); break;
+      }
+      var dm = /[?&]datum=(\d{4}-\d{2}-\d{2})/.exec(location.search);
+      if (dm && dm[1] >= el.date.min && dm[1] <= el.date.max && dm[1] <= BOOKING_UNTIL && !closedDay(parseDate(dm[1]))) cur = dm[1];
+    }
+    el.date.value = cur;
+    drawDays();
+  }
+  initDates(false);
 
   function setMode(live) {
     state.live = live;
     if (el.flag) el.flag.hidden = live;
     el.btn.textContent = live ? 'Pošalji zahtjev' : 'Prikaži primjer';
     if (el.promoWrap) el.promoWrap.hidden = !live;
+    state.start = null; state.quote = null;
     renderSlots();
   }
   /* detect API: live only if it answers with JSON */
-  fetch('/api/dostupnost?zona=ind&trajanje=1&osobe=1&datum=' + el.date.value, { cache: 'no-store' })
+  fetch('/api/dostupnost?zona=ind&trajanje=1&osobe=1&datum=' + (el.date.value || iso(new Date())), { cache: 'no-store' })
     .then(function (r) { return r.ok && /json/.test(r.headers.get('content-type') || '') ? r.json() : Promise.reject(); })
-    .then(function (j) { setMode(typeof j.ok === 'boolean'); })
+    .then(function (j) {
+      if (typeof j.ok !== 'boolean') return setMode(false);
+      return fetch('/api/raspored', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (sc) { if (sc && sc.ok && sc.days) { state.sched = sc; initDates(true); } })
+        .catch(function () {})
+        .then(function () { setMode(true); });
+    })
     .catch(function () { setMode(false); });
   setMode(false);
 
