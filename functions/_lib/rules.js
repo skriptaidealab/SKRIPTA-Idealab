@@ -28,7 +28,7 @@ export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 6: 26 },
   lounge: { 1: 6, 2: 10, 4: 15 }
 };
-export const NAMES = { ind: 'Quiet zona', lounge: 'Lounge zona' };
+export const NAMES = { ind: 'Focus zona', lounge: 'Lounge zona' };
 export const MAX_PERSONS = 4; // most people in one booking
 export const zoneLabel = (b) => NAMES[b.zone] + (b.persons > 1 ? `, ${b.persons} osobe` : '');
 // Seats per zone (confirmed by owner). A slot is free while confirmed bookings overlapping it use fewer seats than this.
