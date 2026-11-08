@@ -11,7 +11,7 @@ const LATE = 90; // minutes after the end of the slot until a thank-you is still
 async function send(env, b, test = false) {
   const first = esc(niceName(b.name).split(' ')[0]);
   const when = `${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Hvala na posjeti, SKRIPTA Coffice`, html: mail({ chip: 'Hvala', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti!', lead: `Hvala ti, ${first}. Nadamo se da ti je u COFFICE-u bilo ugodno.`, rows: [['Zona', zoneLabel(b)], ['Termin', when]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši ponovo' }], note: 'Vidimo se opet!<br><br><b style="color:#1A1A1A">Imaš li tri minute?</b> Reci nam šta misliš o prostoru. <a href="https://forms.cloud.microsoft/e/22pC0hMy1u" style="color:#1A1A1A;font-weight:700">Ispuni kratku anketu</a>. Anonimna je i pomaže nam da ga uredimo po tvojoj mjeri.' }) });
+  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Hvala na posjeti, SKRIPTA Coffice`, html: mail({ chip: 'Hvala', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti!', lead: `Hvala ti, ${first}. Nadamo se da ti je u COFFICE-u bilo ugodno.`, rows: [['Zona', zoneLabel(b)], ['Termin', when]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši ponovo' }], note: 'Vidimo se opet!' }) });
 }
 
 export async function onRequestPost({ request, env }) {
