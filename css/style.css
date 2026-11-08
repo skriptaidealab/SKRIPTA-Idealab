@@ -1527,3 +1527,7 @@ body.is-openday .poster .hero-price { display: none; }
 .promo-row .btn { flex: none; min-height: 48px; padding-left: 18px; padding-right: 18px; cursor: pointer; }
 .promo-ok { margin: 8px 0 0; font-size: 0.88rem; font-weight: 700; color: var(--indigo); line-height: 1.35; }
 .promo-ok[hidden] { display: none; }
+
+/* Map in the "Kako do nas" block */
+.prac .map-embed { aspect-ratio: 4 / 3.4; min-height: 280px; }
+.prac .map-embed iframe { width: 100%; height: 100%; border: 0; }
