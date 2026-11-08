@@ -6,7 +6,7 @@
   var root = document.getElementById('rezervacija');
   if (!root) return;
 
-  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 6: 26 }, lounge: { 1: 6, 2: 10, 4: 15 } };
+  var PRICES = { ind: { 1: 7, 2: 12, 4: 20, 6: 26 }, lounge: { 1: 5, 2: 8, 4: 13 } };
   var NAMES = { ind: 'Focus zona', lounge: 'Lounge zona' };
   var OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30, LEAD_MIN = 60;
 

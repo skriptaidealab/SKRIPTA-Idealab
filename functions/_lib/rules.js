@@ -26,7 +26,7 @@ export const OPEN_UNTIL = '2026-11-14'; // until then everything up to this date
 export const BUFFER_MIN = 30;      // TODO proposal: prep time around a whole-space booking
 export const PRICES = {
   ind:    { 1: 7, 2: 12, 4: 20, 6: 26 },
-  lounge: { 1: 6, 2: 10, 4: 15 }
+  lounge: { 1: 5, 2: 8, 4: 13 }
 };
 export const NAMES = { ind: 'Focus zona', lounge: 'Lounge zona' };
 export const MAX_PERSONS = 4; // most people in one booking
