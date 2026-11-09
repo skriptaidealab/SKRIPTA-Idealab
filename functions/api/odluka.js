@@ -6,8 +6,9 @@ import { listBlocks, sendMail, createEvent, deleteEvent } from '../_lib/graph.js
 import { googleUrl } from '../_lib/cal.js';
 
 const load = (env, id) => env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
+const payText = (b) => (b.flexi_paket_id ? 'FLEXI paket, bez doplate' : priceText(b.total));
 const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
-const summary = (b) => `<dl><dt>Zona</dt><dd>${esc(NAMES[b.zone])}, ${b.persons} ${b.persons === 1 ? 'osoba' : 'osobe'}</dd><dt>Termin</dt><dd>${esc(whenOf(b))}</dd>${b.promo ? `<dt>Promo kod</dt><dd>${esc(promoLine(b))}</dd>` : ''}<dt>Ukupno</dt><dd>${priceText(b.total)}</dd><dt>Gost</dt><dd>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}</dd></dl>`;
+const summary = (b) => `<dl><dt>Zona</dt><dd>${esc(NAMES[b.zone])}, ${b.persons} ${b.persons === 1 ? 'osoba' : 'osobe'}</dd><dt>Termin</dt><dd>${esc(whenOf(b))}</dd>${b.promo ? `<dt>Promo kod</dt><dd>${esc(promoLine(b))}</dd>` : ''}<dt>Ukupno</dt><dd>${payText(b)}</dd><dt>Gost</dt><dd>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}</dd></dl>`;
 
 // Reasons the owner can pick when she rejects a request or cancels a confirmed booking. The text goes to the guest in the e-mail.
 const REASONS = {
@@ -82,12 +83,12 @@ export async function onRequestPost({ request, env }) {
   let eventId = null, calendarNote = '';
   const cancelUs = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, b.id, 'otkazi-mi')}`;
   try {
-    eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${priceText(b.total)}</p><p><a href="${cancelUs}">Otkaži ovu rezervaciju (mi otkazujemo)</a></p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
+    eventId = await createEvent(env, { subject: `Coffice: ${NAMES[b.zone]}, ${b.persons} os. (${b.name})`, html: `<p>${esc(b.name)}, ${esc(b.email)}${b.phone ? ', ' + esc(b.phone) : ''}<br>${payText(b)}</p><p><a href="${cancelUs}">Otkaži ovu rezervaciju (mi otkazujemo)</a></p>`, date: b.date, startMin: b.start_min, endMin: b.start_min + b.dur_h * 60 });
   } catch (e) { console.error(e); calendarNote = '<p><b>Upozorenje:</b> događaj nije upisan u kalendar. Dodajte ga ručno.</p>'; }
   await env.DB.prepare("UPDATE bookings SET status = 'confirmed', table_idx = ?, event_id = ? WHERE id = ?").bind(q.zone === 'cafe' ? tbl : null, eventId, b.id).run();
   await subscribeIfOptedIn(env, b);
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
   const icsUrl = `${env.SITE_URL}/api/kalendar?t=${await makeToken(env, b.id, 'kalendar')}`;
-  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ...(b.promo ? [['Promo kod', promoLine(b)]] : []), ['Ukupno', priceText(b.total)]], buttons: [{ href: googleUrl(b), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
+  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ...(b.promo ? [['Promo kod', promoLine(b)]] : []), ['Ukupno', payText(b)]], buttons: [{ href: googleUrl(b), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }

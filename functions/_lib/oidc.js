@@ -35,11 +35,11 @@ const b64uBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g,
 const b64uJson = (s) => JSON.parse(new TextDecoder().decode(b64uBytes(s)));
 
 /* ---------- početak prijave ---------- */
-export async function startUrl(env, provider) {
+export async function startUrl(env, provider, ret = '') {
   const P = PROVIDERS[provider];
   const state = randomToken(24), nonce = randomToken(16), verifier = randomToken(48);
   const challenge = b64u(await crypto.subtle.digest('SHA-256', enc.encode(verifier)));
-  await env.DB.prepare('INSERT INTO oauth_states (state_hash, provider, nonce, verifier, created_at) VALUES (?,?,?,?,?)').bind(await sha256(state), provider, nonce, verifier, nowSec()).run();
+  await env.DB.prepare('INSERT INTO oauth_states (state_hash, provider, nonce, verifier, ret, created_at) VALUES (?,?,?,?,?,?)').bind(await sha256(state), provider, nonce, verifier, ret || null, nowSec()).run();
   await env.DB.prepare('DELETE FROM oauth_states WHERE created_at < ?').bind(nowSec() - 3600).run();
   const u = new URL(P.auth);
   const q = { client_id: P.clientId(env), redirect_uri: redirectUri(env, provider), response_type: 'code', scope: P.scope, state, nonce, code_challenge: challenge, code_challenge_method: 'S256', ...P.params };
@@ -111,5 +111,5 @@ export async function finishLogin(env, provider, code, state, userJson) {
   const emailTrusted = !!email && (provider === 'microsoft' ? c.tid === MS_CONSUMER_TENANT : verified);
   let name = String(c.name || '').trim();
   if (provider === 'apple' && userJson) { try { const u = JSON.parse(userJson); name = [u.name?.firstName, u.name?.lastName].filter(Boolean).join(' ') || name; } catch {} }
-  return { sub: String(c.sub), email, emailTrusted, name: name.slice(0, 100) };
+  return { sub: String(c.sub), email, emailTrusted, name: name.slice(0, 100), ret: st.ret || '' };
 }

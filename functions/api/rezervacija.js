@@ -4,6 +4,7 @@ import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
 import { getUser } from '../_lib/auth.js';
+import { checkFlexi, addMonth } from '../_lib/flexi.js';
 
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
@@ -21,28 +22,44 @@ export async function onRequestPost({ request, env }) {
   const { bookings, blocks } = day;
   if (!freeStarts(q, bookings, blocks, sch).includes(start)) return json({ ok: false, error: 'Taj termin više nije slobodan. Odaberite drugi.' }, 409);
 
+  // FLEXI: samo prijavljen korisnik, samo vlastiti paket, samo Focus zona i trajanje paketa.
+  let flexi = null;
+  if (b.flexi) {
+    if (!user) return json({ ok: false, error: 'Za FLEXI posjetu se prijavi.' }, 401);
+    try { flexi = await checkFlexi(env, user, Number(b.flexi), q); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera paketa nije uspjela. Pokušaj opet.' }, 503); }
+    if (!flexi.ok) return json({ ok: false, error: flexi.error }, 400);
+  }
   let promo = null;
-  const kod = clean(b.kod, 30);
+  const kod = flexi ? '' : clean(b.kod, 30);
   if (kod) {
     try { promo = await applyPromo(env, kod, { ...q, email, phone }); } catch (e) { console.error(e); return json({ ok: false, error: 'Provjera promo koda nije uspjela. Pokušaj opet.' }, 503); }
     if (!promo.ok) return json({ ok: false, error: promo.error, promo: true }, 400);
     if (discountFor(sch, q.zone, q.date, start, q.dur).pct >= promo.pct) promo = null; // the schedule discount is already as good: the code is not used up
   }
-  const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date, promo ? promo.pct : 0, start, sch);
+  const id = newId(), sum = flexi ? 0 : total(q.zone, q.dur, q.persons, q.date, promo ? promo.pct : 0, start, sch);
   // The promo column comes from migrations/2026-11-06-promo.sql; without a code the old insert still works.
-  if (user) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo ? promo.code : null, user.id).run();
+  if (user) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo, user_id, flexi_paket_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo ? promo.code : null, user.id, flexi ? flexi.paket.id : null).run();
   else if (promo) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo.code).run();
   else await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
+  if (flexi) {
+    // Istovremene rezervacije ne smiju premašiti paket: ako je ova višak, povlači se.
+    const re = await checkFlexi(env, user, flexi.paket.id, { ...q, persons: 1 }).catch(() => null);
+    const held = (await env.DB.prepare("SELECT COUNT(*) AS n FROM bookings WHERE flexi_paket_id = ? AND status IN ('pending','confirmed') AND checked_in_at IS NULL").bind(flexi.paket.id).first()).n;
+    const used = (await env.DB.prepare('SELECT COUNT(*) AS n FROM flexi_posjete WHERE paket_id = ?').bind(flexi.paket.id).first()).n;
+    if (!re || used + held > flexi.paket.dolazaka) { await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(id).run(); return json({ ok: false, error: 'Nema slobodnih posjeta u paketu.' }, 409); }
+    await env.DB.prepare('UPDATE flexi_paketi SET expires_at = ?, user_id = ? WHERE id = ? AND expires_at IS NULL').bind(addMonth(q.date), user.id, flexi.paket.id).run();
+    await env.DB.prepare('UPDATE flexi_paketi SET user_id = ? WHERE id = ? AND user_id IS NULL').bind(user.id, flexi.paket.id).run();
+  }
   if (b.novosti === true) await markOptIn(env, id); // acted on only when the booking is confirmed
 
   const when = `${q.date.split('-').reverse().join('.')} ${fmt(start)} do ${fmt(start + q.dur * 60)}`;
   const yes = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'potvrdi')}`;
   const no = `${env.SITE_URL}/api/odluka?t=${await makeToken(env, id, 'odbij')}`;
-  const rows = [['Zona', zoneLabel(q)], ['Termin', when], ...(promo ? [['Promo kod', `${promo.code}, ${promo.pct}% popusta`]] : []), ['Ukupno', priceText(sum)]];
+  const rows = [['Zona', zoneLabel(q)], ['Termin', when], ...(promo ? [['Promo kod', `${promo.code}, ${promo.pct}% popusta`]] : []), ['Ukupno', flexi ? 'FLEXI paket, bez doplate' : priceText(sum)]];
   const guest = [['Ime', name], ['Email', email], ['Telefon', phone]];
   const withdraw = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, id, 'otkazi')}`;
   try {

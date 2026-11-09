@@ -270,5 +270,47 @@ ok(st2.status === 302 && st2.headers.get('location').startsWith('https://www.skr
 const off = await start.onRequestGet({ request: new Request(ORIGIN + '/api/racun/oauth/apple/start'), env: { ...savedEnv, APPLE_CLIENT_ID: '' }, params: { provider: 'apple' } });
 ok(off.status === 404, 'isključen pružalac vraća 404');
 
+
+/* ---- 8. FLEXI rezervacija i povratak u formu ---- */
+section('FLEXI rezervacija');
+const rez = await import('../functions/api/rezervacija.js');
+const flx = await import('../functions/_lib/flexi.js');
+ok(flx.addMonth('2026-01-31') === '2026-02-28' && flx.addMonth('2026-12-15') === '2027-01-15' && flx.addMonth('2028-01-31') === '2028-02-29' && flx.addMonth('2026-11-10') === '2026-12-10', 'addMonth: kraj mjeseca i prelazak godine');
+const ckD = await login('dina@gmail.com', '7.7.7.1');
+const dinaId = (await db.prepare('SELECT id FROM users WHERE email = ?').bind('dina@gmail.com').first()).id;
+const ins = async (email, sati, dol, extra = '') => (await db.prepare('INSERT INTO flexi_paketi (created_at, ime, email, sati, dolazaka, cijena) VALUES (?,?,?,?,?,?)').bind(new Date().toISOString(), 'Test', email, sati, dol, 90).run(), (await db.prepare('SELECT MAX(id) AS id FROM flexi_paketi').first()).id);
+const pk4 = await ins('dina@gmail.com', 4, 2), pkOther = await ins('neko@drugi.ba', 4, 5);
+const day = rules.ymd(rules.dayNum(rules.sarajevoNow().date) + 1);
+const book = (extra, cookie = ckD) => call(rez, '/api/rezervacija', { body: { zona: 'ind', trajanje: 4, osobe: 1, datum: day, pocetak: 600, ime: 'Dina Hodžić', email: 'lazni@x.ba', telefon: '+38762111222', ...extra }, cookie });
+ok((await book({ flexi: pk4 }, null)).r.status === 401, 'FLEXI bez prijave = 401');
+ok((await book({ flexi: pkOther })).r.status === 400, 'tuđi FLEXI paket se ne može iskoristiti');
+ok((await book({ flexi: pk4, zona: 'lounge', trajanje: 2 })).r.status === 400, 'FLEXI ne važi za Lounge');
+ok((await book({ flexi: pk4, trajanje: 2 })).r.status === 400, 'FLEXI s pogrešnim trajanjem se odbija');
+ok((await book({ flexi: pk4, osobe: 2 })).r.status === 400, 'FLEXI za dvije osobe se odbija');
+const f1 = await book({ flexi: pk4 });
+ok(f1.j.ok === true, 'FLEXI rezervacija prolazi: ' + JSON.stringify(f1.j));
+const fb = await db.prepare('SELECT * FROM bookings WHERE flexi_paket_id = ?').bind(pk4).first();
+ok(fb && fb.total === 0 && fb.user_id === dinaId && fb.email === 'dina@gmail.com', 'FLEXI rezervacija: iznos 0, vezana za račun, email računa (ne onaj iz forme)');
+ok((await db.prepare('SELECT expires_at, user_id FROM flexi_paketi WHERE id = ?').bind(pk4).first()).expires_at === flx.addMonth(day), 'rok = mjesec od datuma prve rezervacije s paketom');
+ok(sent.at(-1).htmlContent.includes('FLEXI paket') || sent.at(-2).htmlContent.includes('FLEXI paket'), 'mail pominje FLEXI paket, ne cijenu');
+const f2 = await book({ flexi: pk4, pocetak: 720 }); // 12:00-16:00 isti dan: drugi termin
+ok(f2.j.ok === true, 'druga posjeta iz istog paketa prolazi');
+const f3 = await book({ flexi: pk4, pocetak: 840 });
+ok(f3.r.status === 400 && /slobodnih posjeta/.test(f3.j.error), 'treća posjeta iz paketa od 2 se odbija');
+await db.prepare('UPDATE flexi_paketi SET expires_at = ? WHERE id = ?').bind(rules.ymd(rules.dayNum(day) - 1), pk4).run();
+await db.prepare("UPDATE bookings SET status = 'cancelled' WHERE flexi_paket_id = ?").bind(pk4).run();
+ok((await book({ flexi: pk4 })).r.status === 400, 'istekao paket se ne može koristiti');
+const guestBook = await call(rez, '/api/rezervacija', { body: { zona: 'ind', trajanje: 1, osobe: 1, datum: day, pocetak: 900, ime: 'Gost Gostić', email: 'gost@x.ba', telefon: '+38762111222' } });
+ok(guestBook.j.ok === true && (await db.prepare("SELECT user_id FROM bookings WHERE email = 'gost@x.ba'").first()).user_id === null, 'gost i dalje može rezervisati bez računa');
+const loggedBook = await book({ trajanje: 1, pocetak: 960, email: 'tudji@x.ba' });
+ok(loggedBook.j.ok && (await db.prepare("SELECT email FROM bookings WHERE start_min = 960 AND user_id = ?").bind(dinaId).first()).email === 'dina@gmail.com', 'prijavljenom korisniku se ne može podmetnuti tuđi email u rezervaciju');
+
+section('Povratak u formu nakon prijave');
+const mkStart = async (qs) => (await start.onRequestGet({ request: new Request(ORIGIN + '/api/racun/oauth/google/start' + qs), env, params: { provider: 'google' } })).headers.get('location');
+const finish = async (u, sub) => { const st = new URL(u).searchParams.get('state'), nn = new URL(u).searchParams.get('nonce'); fetchStub = stub(() => sign(base(nn, 'g-id'))); const r = await povratak.onRequestGet({ request: new Request(ORIGIN + '/api/racun/oauth/google/povratak?code=x&state=' + st), env, params: { provider: 'google' } }); fetchStub = null; return r.headers.get('location'); };
+ok((await finish(await mkStart('?nazad=coffice&zona=lounge&datum=2026-11-12'))) === 'https://www.skripta.ba/coffice.html?zona=lounge&datum=2026-11-12#rezervacija', 'povratak u rezervaciju čuva zonu i datum');
+ok((await finish(await mkStart('?nazad=https://evil.example/&zona=ind'))) === 'https://www.skripta.ba/racun.html', 'proizvoljan URL se ne prihvata (nema open redirecta)');
+ok((await finish(await mkStart('?nazad=coffice&zona=%3Cscript%3E&datum=x'))) === 'https://www.skripta.ba/coffice.html#rezervacija', 'neispravne vrijednosti se odbacuju');
+
 console.log(`\nProlazi: ${pass}, padaju: ${fail}`);
 process.exit(fail ? 1 : 0);

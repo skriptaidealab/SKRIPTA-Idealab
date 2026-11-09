@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   provider TEXT NOT NULL,
   nonce TEXT NOT NULL,
   verifier TEXT NOT NULL,
+  ret TEXT,                        -- kamo se vratiti nakon prijave (samo provjerene vrijednosti)
   created_at INTEGER NOT NULL
 );
 

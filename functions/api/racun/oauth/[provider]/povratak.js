@@ -2,7 +2,13 @@
 import { PROVIDERS, finishLogin } from '../../../../_lib/oidc.js';
 import { createSession, findOrCreateUser, audit, randomToken, nowSec, rateLimit, clientIp } from '../../../../_lib/auth.js';
 
-const back = (env, q, cookie) => new Response(null, { status: 302, headers: { location: `${new URL(env.SITE_URL).origin}/racun.html${q}`, 'cache-control': 'no-store', ...(cookie ? { 'set-cookie': cookie } : {}) } });
+const back = (env, q, cookie, ret = '') => {
+  const origin = new URL(env.SITE_URL).origin;
+  let loc = `${origin}/racun.html${q}`;
+  const m = /^c\|(ind|lounge|)\|(\d{4}-\d{2}-\d{2}|)$/.exec(ret);
+  if (m && !q) { const par = [m[1] && 'zona=' + m[1], m[2] && 'datum=' + m[2]].filter(Boolean).join('&'); loc = `${origin}/coffice.html${par ? '?' + par : ''}#rezervacija`; }
+  return new Response(null, { status: 302, headers: { location: loc, 'cache-control': 'no-store', ...(cookie ? { 'set-cookie': cookie } : {}) } });
+};
 
 async function handle({ request, env, params }, data) {
   const p = String(params.provider), P = PROVIDERS[p];
@@ -29,7 +35,7 @@ async function handle({ request, env, params }, data) {
   }
   if (!user) return back(env, '?greska=prijava');
   await audit(env, user.id, 'prijava_' + p);
-  return back(env, '', await createSession(env, user.id));
+  return back(env, '', await createSession(env, user.id), id.ret);
 }
 export const onRequestGet = (ctx) => handle(ctx, new URL(ctx.request.url).searchParams);
 export async function onRequestPost(ctx) { return handle(ctx, await ctx.request.formData()); }
