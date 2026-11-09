@@ -54,3 +54,18 @@ Novo: `api/checkin.js`, `api/kraj.js`, `api/letci.js`, `api/jutro.js`, `_lib/qr.
 5. **Test:** `POST /api/kraj?test=vas@email` (header `x-cron-secret`) šalje testni "Još 15 minuta". `POST /api/jutro?d=YYYY-MM-DD` šalje jutarnji mail za taj datum. Link iz maila otvara letke za printanje.
 
 Pravila: podsjetnik pred kraj dobijaju samo gosti koji su skenirali QR kod, i to samo ako su skenirali prije zadnjih 15 minuta termina. Check-in radi od 30 minuta prije početka do kraja termina. Dolasci su u koloni `checked_in_at`. Gosti bez skeniranja: `checked_in_at IS NULL` nakon kraja termina.
+
+## 5. Korisnički računi (grana feature/korisnicki-racuni)
+
+Redoslijed: 1) u D1 konzoli pokreni `migrations/2026-11-10-racuni.sql` JEDNOM, prije objave grane. 2) Objavi sajt. 3) Objavi tracker (`coffice-popunjenost`), koji skida FLEXI posjetu pri check-inu.
+
+Varijable (Pages, Settings, Variables and Secrets). `SIGNING_SECRET` mora imati najmanje 32 znaka i `SITE_URL` mora biti kanonski domen.
+- Google: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Google Cloud Console, OAuth client (Web), redirect URI: `https://www.skripta.ba/api/racun/oauth/google/povratak`.
+- Microsoft: `MSLOGIN_CLIENT_ID`, `MSLOGIN_CLIENT_SECRET`. Nova registracija aplikacije, odvojena od Graph aplikacije. Supported account types: "Personal + organizational" (common). Redirect URI: `https://www.skripta.ba/api/racun/oauth/microsoft/povratak`. Radni i školski računi ne smatraju se provjerenim emailom: tražimo kod s emaila.
+- Apple: `APPLE_CLIENT_ID` (Services ID), `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (sadržaj .p8). Services ID, domena skripta.ba (verifikacija fajla), return URL: `https://www.skripta.ba/api/racun/oauth/apple/povratak`.
+- Dok varijable pružaoca nisu postavljene, dugme se ne prikazuje. Prijava emailom radi uvijek.
+
+Napomene:
+- Brisanje računa ne briše kontakt iz Brevo liste. Obriši ga ručno u Brevo-u ako gost to traži.
+- Statički se servira korijen repoa, pa su `schema.sql`, `migrations/` i `tests/` javno dostupni. Nema tajni u njima, ali razmisli o premještanju.
+- Produženje termina povećava `total`, ali ne mijenja `paid_at`. Admin "produži" na tracker ploči ne mijenja `total`.
