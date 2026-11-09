@@ -1616,8 +1616,8 @@ body.is-openday .poster .hero-price { display: none; }
 .rc-opt small { font-size: 0.78rem; color: var(--ink-soft); }
 .rc-opt[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
 .rc-opt[aria-pressed="true"] small { color: #fff; }
-.rc-opt:disabled { background: #f0eeea; border-style: dashed; color: #8d8a84; cursor: not-allowed; text-decoration: line-through; }
-.rc-opt:disabled small { text-decoration: none; }
+.rc-opt:disabled { background: #f0eeea; border-style: dashed; color: #8d8a84; cursor: not-allowed; }
+.rc-opt:disabled b { text-decoration: line-through; }
 .rc-opt:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
 .rc-flexi { border: 1.5px solid var(--ink); background: #fff; padding: 22px; margin-bottom: 14px; position: relative; }
 .rc-flexi h3 { margin: 0 0 4px; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800; }
