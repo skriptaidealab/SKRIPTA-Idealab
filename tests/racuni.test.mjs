@@ -364,5 +364,19 @@ ok((await finish(await mkStart('?l=en'))) === 'https://www.skripta.ba/racun-en.h
 const I = await import('../js/i18n.js').then((m) => m.default || m);
 ok(I.T('Termin je već promijenjen. Osvježi stranicu.') === 'The slot has already been changed. Refresh the page.' && I.T('Focus zona, 12.11. u 10:00 do 11:00') === 'Focus zone, 12 Nov at 10:00 to 11:00', 'klijentski prijevod (rječnik i pravila)');
 
+section('Ime pri prvoj prijavi');
+{
+  const lg = async (email, ip) => { await call(posalji, '/api/racun/kod-posalji', { body: { email }, ip }); return call(provjeri, '/api/racun/kod-provjeri', { body: { email, kod: lastCode() }, ip }); };
+  const nov = await lg('potpuno-nov@example.com', '9.9.9.1');
+  ok(nov.j.ok && nov.j.trebaIme === true, 'novi email bez rezervacija: traži se ime');
+  const p1 = await call(await import('../functions/api/racun/profil.js'), '/api/racun/profil', { body: { ime: 'Samo', telefon: '' }, cookie: cookieOf(nov.r) });
+  ok(p1.j.ok === false, 'samo jedno ime se odbija');
+  const p2 = await call(await import('../functions/api/racun/profil.js'), '/api/racun/profil', { body: { ime: 'Novi Gost', telefon: '' }, cookie: cookieOf(nov.r) });
+  ok(p2.j.ok === true && (await call(ja, '/api/racun/ja', { method: 'GET', cookie: cookieOf(nov.r) })).j.user.name === 'Novi Gost', 'ime i prezime (bez telefona) se sprema');
+  await mk('ime-stari-1', 'stari-klijent@example.com', { name: 'Stari Klijent' });
+  const star = await lg('stari-klijent@example.com', '9.9.9.2');
+  ok(star.j.ok && star.j.trebaIme === false, 'poznat klijent: ime se ne traži, povuče se iz rezervacije');
+}
+
 console.log(`\nProlazi: ${pass}, padaju: ${fail}`);
 process.exit(fail ? 1 : 0);

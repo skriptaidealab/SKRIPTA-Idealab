@@ -31,5 +31,5 @@ export async function onRequestPost({ request, env }) {
     await env.DB.prepare('DELETE FROM oauth_pending WHERE id = ?').bind(pending.id).run();
   }
   await audit(env, user.id, pending ? 'prijava_' + pending.provider + '_kod' : 'prijava_kod');
-  return json({ ok: true }, 200, { 'set-cookie': await createSession(env, user.id) });
+  return json({ ok: true, trebaIme: !user.name }, 200, { 'set-cookie': await createSession(env, user.id) });
 }

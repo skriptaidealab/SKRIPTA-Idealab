@@ -92,7 +92,7 @@
         api('/api/racun/kod-provjeri', opts.pending ? { pending: opts.pending, kod: kod } : { email: email, kod: kod }).then(function (j) {
           btn.disabled = false; btn.textContent = 'Prijavi se';
           if (!j.ok) return say(j.error || 'Kod nije ispravan.');
-          me(true).then(function () { if (opts.onDone) opts.onDone(); });
+          me(true).then(function () { if (j.trebaIme) stepProfil(); else if (opts.onDone) opts.onDone(); });
         });
       });
       wrap.appendChild(form);
@@ -104,6 +104,35 @@
       wrap.appendChild(el('p', { class: 'rc-fine' }, again, opts.pending ? null : ' · ', opts.pending ? null : el('button', { type: 'button', class: 'rc-link', text: 'Promijeni email', onclick: function () { say(''); boot(); } })));
       box.appendChild(wrap);
       input.focus();
+    }
+
+    /* Prvi put (nemamo ime uz ovaj email): tek nakon potvrđenog koda tražimo ime i neobavezno telefon. */
+    function stepProfil() {
+      box.textContent = '';
+      var wrap = el('div', { class: 'rc-login' });
+      if (!opts.kompaktno) wrap.appendChild(el('h2', { text: 'Dobrodošao/la' }));
+      wrap.appendChild(el('p', { class: 'rc-lead', text: 'Račun je napravljen. Upiši ime i prezime da rezervacije budu na pravo ime. Telefon je neobavezan.' }));
+      var ime = el('input', { type: 'text', id: 'rc-nova-ime' + (opts.kompaktno ? '-k' : ''), autocomplete: 'name', placeholder: 'Ime Prezime', required: '' });
+      var tel = el('input', { type: 'tel', id: 'rc-nova-tel' + (opts.kompaktno ? '-k' : ''), autocomplete: 'tel', inputmode: 'tel', placeholder: '+387 6x xxx xxx' });
+      var btn = el('button', { type: 'submit', class: 'btn btn-solid', text: 'Nastavi' });
+      var form = el('form', { class: 'rc-form', novalidate: '' },
+        el('label', { class: 'lab', for: ime.id, text: 'Ime i prezime' }), ime,
+        el('label', { class: 'lab', for: tel.id, text: 'Telefon (neobavezno)' }), tel, btn);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); say('');
+        if (ime.value.trim().split(/\s+/).length < 2) return say('Upiši ime i prezime.');
+        btn.disabled = true;
+        api('/api/racun/profil', { ime: ime.value.trim(), telefon: tel.value.trim() }).then(function (j) {
+          btn.disabled = false;
+          if (!j.ok) return say(j.error || 'Spremanje nije uspjelo.');
+          me(true).then(function () { if (opts.onDone) opts.onDone(); });
+        });
+      });
+      wrap.appendChild(form);
+      wrap.appendChild(msg);
+      wrap.appendChild(el('p', { class: 'rc-fine' }, el('button', { type: 'button', class: 'rc-link', text: 'Preskoči', onclick: function () { if (opts.onDone) opts.onDone(); } })));
+      box.appendChild(wrap);
+      ime.focus();
     }
 
     function boot() {

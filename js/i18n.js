@@ -23,6 +23,7 @@
     'Upiši kod': 'Enter code', 'Kod': 'Code', 'Prijavi se': 'Sign in', 'Provjeravam...': 'Checking...',
     'Kod ima šest cifara.': 'The code has six digits.', 'Kod nije ispravan.': 'The code is not valid.',
     'Poslali smo šestocifreni kod na email iz tvog naloga. Vrijedi 10 minuta.': 'We sent a six-digit code to the email on your account. It is valid for 10 minutes.',
+    'Dobrodošao/la': 'Welcome', 'Račun je napravljen. Upiši ime i prezime da rezervacije budu na pravo ime. Telefon je neobavezan.': 'Your account is ready. Enter your full name so bookings are under the right name. Phone is optional.', 'Telefon (neobavezno)': 'Phone (optional)', 'Nastavi': 'Continue', 'Preskoči': 'Skip', 'Spremanje nije uspjelo.': 'Saving failed.',
     'Pošalji novi kod': 'Send a new code', 'Promijeni email': 'Change email', 'Poslali smo novi kod.': 'We sent a new code.',
     'Prijava je istekla. Pokušaj ponovo.': 'Sign-in expired. Please try again.',
     'Prijava je izborna. Račun ti daje pregled rezervacija, produženje termina i FLEXI pakete.': 'Signing in is optional. An account gives you your bookings, slot extensions and FLEXI packages.',
