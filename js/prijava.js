@@ -49,7 +49,7 @@
         providers.forEach(function (p) {
           row.appendChild(el('a', { class: 'btn btn-outline rc-prov', href: '/api/racun/oauth/' + p + '/start', text: 'Nastavi s ' + (LABEL[p] || p), onclick: function (e) {
             var n = opts.nazad && opts.nazad();
-            if (n) { e.preventDefault(); location.href = '/api/racun/oauth/' + p + '/start?nazad=coffice&zona=' + encodeURIComponent(n.zona || '') + '&datum=' + encodeURIComponent(n.datum || ''); }
+            if (n) { e.preventDefault(); location.href = '/api/racun/oauth/' + p + '/start?nazad=coffice&zona=' + encodeURIComponent(n.zona || '') + '&datum=' + encodeURIComponent(n.datum || '') + (document.documentElement.lang === 'en' ? '&l=en' : ''); }
           } }));
         });
         wrap.appendChild(row);

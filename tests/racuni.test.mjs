@@ -312,5 +312,28 @@ ok((await finish(await mkStart('?nazad=coffice&zona=lounge&datum=2026-11-12'))) 
 ok((await finish(await mkStart('?nazad=https://evil.example/&zona=ind'))) === 'https://www.skripta.ba/racun.html', 'proizvoljan URL se ne prihvata (nema open redirecta)');
 ok((await finish(await mkStart('?nazad=coffice&zona=%3Cscript%3E&datum=x'))) === 'https://www.skripta.ba/coffice.html#rezervacija', 'neispravne vrijednosti se odbacuju');
 
+section('Engleski tok');
+const BS_WORDS = /[čćšžđČĆŠŽĐ]|\b(rezervacij\w*|termin\w*|potvrd\w*|hvala|zdravo|prijav\w*|otkaž\w*|plaćanj\w*|dolasku|poštovan\w*|kafa|emailom|zahtjev\w*|vrijedi|minuta|pošalji)\b/i;
+const plain = (h) => String(h).replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/g, ' ');
+const before = sent.length;
+const enBook = await call(rez, '/api/rezervacija', { body: { zona: 'ind', trajanje: 1, osobe: 1, datum: day, pocetak: 1020, ime: 'John Smith', email: 'john@example.com', telefon: '+38762111222', lang: 'en' }, ip: '9.9.9.9' });
+ok(enBook.j && enBook.j.ok === true, 'engleska rezervacija prolazi');
+ok((await db.prepare("SELECT lang FROM bookings WHERE email = 'john@example.com'").first()).lang === 'en', 'jezik rezervacije se sprema (en)');
+const guestMail = sent.slice(before).filter((m) => (m.to || []).some((t) => t.email === 'john@example.com'));
+ok(guestMail.length >= 1, 'gost dobiva mail o primljenom zahtjevu');
+for (const m of guestMail) ok(!BS_WORDS.test(m.subject + ' ' + plain(m.htmlContent)), 'engleski mail bez bosanskog teksta: ' + m.subject + ' | ' + (plain(m.htmlContent).match(BS_WORDS) || [''])[0]);
+const bsBook = await call(rez, '/api/rezervacija', { body: { zona: 'ind', trajanje: 1, osobe: 1, datum: day, pocetak: 1080, ime: 'Ana Anić', email: 'ana@example.com', telefon: '+38762111222' }, ip: '9.9.9.8' });
+ok(bsBook.j && bsBook.j.ok === true && (await db.prepare("SELECT lang FROM bookings WHERE email = 'ana@example.com'").first()).lang == null, 'bez jezika ostaje bosanski (lang prazan)');
+const b0 = sent.length;
+await call(posalji, '/api/racun/kod-posalji', { body: { email: 'en-user@example.com', lang: 'en' }, ip: '8.8.8.1' });
+const otp = sent[sent.length - 1];
+ok(sent.length === b0 + 1 && /\d{6}/.test(otp.subject) && !BS_WORDS.test(otp.subject + ' ' + plain(otp.htmlContent)), 'kod za prijavu stiže na engleskom: ' + otp.subject);
+await call(posalji, '/api/racun/kod-posalji', { body: { email: 'bs-user@example.com' }, ip: '8.8.8.2' });
+ok(BS_WORDS.test(sent[sent.length - 1].subject + plain(sent[sent.length - 1].htmlContent)), 'bez jezika kod stiže na bosanskom');
+ok((await finish(await mkStart('?nazad=coffice&zona=ind&datum=2026-11-12&l=en'))) === 'https://www.skripta.ba/coffice-en.html?zona=ind&datum=2026-11-12#rezervacija', 'OAuth povratak (en) vodi na coffice-en.html');
+ok((await finish(await mkStart('?l=en'))) === 'https://www.skripta.ba/racun-en.html', 'OAuth povratak (en) vodi na racun-en.html');
+const I = await import('../js/i18n.js').then((m) => m.default || m);
+ok(I.T('Termin je već promijenjen. Osvježi stranicu.') === 'The slot has already been changed. Refresh the page.' && I.T('Focus zona, 12.11. u 10:00 do 11:00') === 'Focus zone, 12 Nov at 10:00 to 11:00', 'klijentski prijevod (rječnik i pravila)');
+
 console.log(`\nProlazi: ${pass}, padaju: ${fail}`);
 process.exit(fail ? 1 : 0);

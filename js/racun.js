@@ -21,7 +21,7 @@
         root.appendChild(el('h1', { text: 'Moj račun' }));
         var box = el('div', { class: 'rc-card' });
         root.appendChild(box);
-        A.mountLogin(box, { pending: params.get('potvrda') || null, onDone: function () { history.replaceState(null, '', 'racun.html'); params = new URLSearchParams(''); render(); } });
+        A.mountLogin(box, { pending: params.get('potvrda') || null, onDone: function () { history.replaceState(null, '', location.pathname.split('/').pop() || 'racun.html'); params = new URLSearchParams(''); render(); } });
         return;
       }
       draw(d);
