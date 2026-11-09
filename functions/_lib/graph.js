@@ -21,7 +21,7 @@ async function call(env, method, path, body) {
 async function sendBrevo(env, { to, subject, html, replyTo }) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST', headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: { name: env.BREVO_FROM_NAME || 'SKRIPTA Coffice', email: env.BREVO_FROM || env.MAILBOX }, to: [{ email: to }], subject, htmlContent: html, replyTo: { email: replyTo || env.MAILBOX } })
+    body: JSON.stringify({ sender: { name: env.BREVO_FROM_NAME || 'COFFICE by Skripta', email: env.BREVO_FROM || env.MAILBOX }, to: [{ email: to }], subject, htmlContent: html, replyTo: { email: replyTo || env.MAILBOX } })
   });
   if (!r.ok) throw new Error('Brevo ' + r.status + ' ' + await r.text());
   return null;
