@@ -56,16 +56,27 @@
     if (b.mozeProduziti) {
       var ext = el('button', { type: 'button', class: 'btn btn-solid', text: 'Produži termin' });
       var panel = el('div', { class: 'rc-ext', hidden: '' });
-      ext.addEventListener('click', function () {
-        if (!panel.hidden) { panel.hidden = true; return; }
-        panel.hidden = false; panel.textContent = ''; say('');
-        panel.appendChild(el('p', { class: 'rc-fine', text: 'Provjeravam dostupnost...' }));
-        A.api('/api/racun/produzi-opcije', { id: b.id }).then(function (j) {
-          panel.textContent = '';
+      var ZN = { ind: 'Focus zona', lounge: 'Lounge zona' };
+      function openOpts(zona) {
+        panel.textContent = ''; say('');
+        var zrow = el('div', { class: 'rc-opts rc-zones' });
+        ['ind', 'lounge'].forEach(function (z) {
+          zrow.appendChild(el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': String(z === zona), onclick: function () { if (z !== zona) openOpts(z); } },
+            el('b', { text: ZN[z] }), el('small', { text: z === b.zona ? 'trenutna zona' : 'preći u ovu zonu' })));
+        });
+        panel.appendChild(el('p', { class: 'rc-ask', text: 'Zona' }));
+        panel.appendChild(zrow);
+        var body = el('div', { class: 'rc-ext-body' }, el('p', { class: 'rc-fine', text: 'Provjeravam dostupnost...' }));
+        panel.appendChild(body);
+        A.api('/api/racun/produzi-opcije', { id: b.id, zona: zona }).then(function (j) {
+          body.textContent = '';
           if (!j.ok) { panel.hidden = true; return say(j.error || 'Provjera nije uspjela. Pokušaj opet.'); }
-          panel.appendChild(el('p', { class: 'rc-ask', text: 'Za koliko želiš produžiti?' }));
+          var other = zona !== b.zona;
+          body.appendChild(el('p', { class: 'rc-ask', text: 'Za koliko želiš produžiti?' }));
+          if (other) body.appendChild(el('p', { class: 'rc-fine', text: 'Do ' + j.kraj + ' ostaješ u ' + ZN[b.zona] + ', a od ' + j.kraj + ' prelaziš u ' + ZN[zona] + '.' }));
           var picked = null, row = el('div', { class: 'rc-opts' });
           var go = el('button', { type: 'button', class: 'btn btn-solid', text: 'Potvrdi produženje', disabled: '' });
+          if (!j.opcije.length) body.appendChild(el('p', { class: 'rc-fine', text: 'Za ovu zonu nema dostupnih opcija.' }));
           j.opcije.forEach(function (o) {
             var label = o.sati + (o.sati === 1 ? ' sat' : (o.sati < 5 ? ' sata' : ' sati'));
             var price = o.cijena === 0 ? 'besplatno' : km(o.cijena) + ' KM';
@@ -74,22 +85,26 @@
             btn.addEventListener('click', function () {
               picked = o; say('');
               Array.prototype.forEach.call(row.children, function (c) { c.setAttribute('aria-pressed', c === btn ? 'true' : 'false'); });
-              go.disabled = false; go.textContent = 'Potvrdi: do ' + o.do;
+              go.disabled = false; go.textContent = 'Potvrdi: ' + (other ? ZN[zona] + ' ' : '') + 'do ' + o.do;
             });
             row.appendChild(btn);
           });
-          panel.appendChild(row);
-          if (j.opcije.some(function (o) { return !o.ok; })) panel.appendChild(el('p', { class: 'rc-fine', text: 'Opcije koje nisu slobodne su zauzete drugim terminom ili prelaze radno vrijeme.' }));
+          body.appendChild(row);
+          if (j.opcije.some(function (o) { return !o.ok; })) body.appendChild(el('p', { class: 'rc-fine', text: 'Opcije koje nisu slobodne su zauzete drugim terminom ili prelaze radno vrijeme.' }));
           go.addEventListener('click', function () {
             if (!picked) return;
             go.disabled = true; say('');
-            A.api('/api/racun/produzi', { id: b.id, sati: picked.sati, kraj: j.kraj }).then(function (r) {
-              if (r.ok) { say('Ostaješ do ' + r.do + '.', true); setTimeout(render, 1200); } else { go.disabled = false; say(r.error || 'Produženje nije uspjelo.'); }
+            A.api('/api/racun/produzi', { id: b.id, sati: picked.sati, zona: zona, kraj: j.kraj }).then(function (r) {
+              if (r.ok) { say(other ? 'Od ' + j.kraj + ' si u ' + ZN[zona] + ', do ' + r.do + '.' : 'Ostaješ do ' + r.do + '.', true); setTimeout(render, 1400); } else { go.disabled = false; say(r.error || 'Produženje nije uspjelo.'); }
             });
           });
-          panel.appendChild(go);
-          panel.appendChild(el('p', { class: 'rc-fine', text: 'Produženje se plaća po dolasku, kao i ostalo.' }));
+          body.appendChild(go);
+          body.appendChild(el('p', { class: 'rc-fine', text: 'Produženje se plaća po dolasku, kao i ostalo.' }));
         });
+      }
+      ext.addEventListener('click', function () {
+        if (!panel.hidden) { panel.hidden = true; return; }
+        panel.hidden = false; openOpts(b.zona);
       });
       actions.appendChild(ext);
       actions.appendChild(panel);

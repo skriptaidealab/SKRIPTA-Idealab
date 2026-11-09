@@ -172,11 +172,24 @@ if (!skipExt) {
     ok(o2.j.ok && o2.j.opcije.every((o) => !o.ok), 'kad je sljedeći termin pun, nijedna opcija nije slobodna');
     await db.prepare("DELETE FROM bookings WHERE id LIKE 'blok-%'").run();
     ok((await call(opcije, '/api/racun/produzi-opcije', { body: { id: 'trenutna-ana' }, cookie: ckB })).r.status === 404, 'opcije za tuđu rezervaciju: 404');
-    const h = [4, 2, 1].find(fit);
+    const h = [4, 2, 1].find((x) => fit(x) && fit(x) && startMin + 120 + x * 60 + 60 <= 1440) || 1;
     const e4 = await call(produzi, '/api/racun/produzi', { body: { id: 'trenutna-ana', sati: h, kraj: fmtT(startMin + 120) }, cookie: ckA });
     const nb4 = await db.prepare('SELECT dur_h, total FROM bookings WHERE id = ?').bind('trenutna-ana').first();
     ok(e4.j.ok && nb4.dur_h === 2 + h && nb4.total === 14 + ({ 1: 7, 2: 12, 4: 20 })[h], 'produženje za ' + h + ' h: dobijeno ' + JSON.stringify(nb4));
     ok((await call(produzi, '/api/racun/produzi', { body: { id: 'trenutna-ana', sati: 6, kraj: fmtT(startMin + 120 + h * 60) }, cookie: ckA })).r.status === 409 || fit(h + 6), 'produženje preko zatvaranja se odbija');
+    const endNow = startMin + 120 + h * 60;
+    if (endNow + 60 <= 1440) {
+      const ol = await call(opcije, '/api/racun/produzi-opcije', { body: { id: 'trenutna-ana', zona: 'lounge' }, cookie: ckA });
+      ok(ol.j.ok && ol.j.zona === 'lounge' && ol.j.trenutnaZona === 'ind' && ol.j.opcije.map((o) => o.sati).join() === '1,2,4' && ol.j.opcije[0].ok && ol.j.opcije[0].cijena === 5, 'opcije za drugu zonu: Lounge 1, 2, 4 sata, 1 h = 5 KM: ' + JSON.stringify(ol.j));
+      const mb = sent.length;
+      const [z1, z2] = await Promise.all([1, 2].map(() => call(produzi, '/api/racun/produzi', { body: { id: 'trenutna-ana', sati: 1, zona: 'lounge', kraj: fmtT(endNow) }, cookie: ckA })));
+      const nl = (await db.prepare("SELECT * FROM bookings WHERE user_id = (SELECT user_id FROM bookings WHERE id = 'trenutna-ana') AND zone = 'lounge' AND start_min = ?").bind(endNow).all()).results;
+      ok([z1, z2].filter((x) => x.j.ok).length >= 1 && nl.length === 1 && nl[0].status === 'confirmed' && nl[0].dur_h === 1 && nl[0].total === 5 && nl[0].checked_in_at, 'prelazak u Lounge: tačno jedna nova potvrđena rezervacija (5 KM): ' + JSON.stringify(nl.map((x) => [x.status, x.dur_h, x.total])));
+      const orig = await db.prepare('SELECT dur_h FROM bookings WHERE id = ?').bind('trenutna-ana').first();
+      ok(orig.dur_h === 2 + h, 'originalni termin ostaje nepromijenjen pri prelasku u drugu zonu');
+      ok(sent.slice(mb).some((m) => (m.to || []).some((t) => t.email === A)), 'gost dobiva mail o nastavku u drugoj zoni');
+      await db.prepare("DELETE FROM bookings WHERE zone = 'lounge' AND start_min = ? AND date = ? AND email = ?").bind(endNow, now.date, A).run(); // da ne smeta kasnijim testovima brisanja računa
+    }
   }
 }
 

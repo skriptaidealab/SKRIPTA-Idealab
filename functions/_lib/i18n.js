@@ -14,6 +14,7 @@ const EXACT = {
   'Tvoj zahtjev za rezervaciju': 'Your booking request',
   'Rezervacija izmijenjena: SKRIPTA Coffice': 'Booking changed: SKRIPTA Coffice',
   'Termin produžen: SKRIPTA Coffice': 'Booking extended: SKRIPTA Coffice',
+  'Nastavak u drugoj zoni: SKRIPTA Coffice': 'Continuing in another zone: SKRIPTA Coffice',
   // chips
   'Još nije potvrđeno': 'Not confirmed yet', 'Potvrđeno': 'Confirmed', 'Otkazano': 'Cancelled', 'Nije potvrđeno': 'Not confirmed',
   'Izmijenjeno': 'Changed', 'Hvala': 'Thanks', 'Podsjetnik': 'Reminder', 'Produženo': 'Extended', 'Prijava': 'Sign-in',
@@ -64,6 +65,8 @@ const RULES = [
   [/^(.+), tvoja rezervacija je izmijenjena\. Novi termin je ispod\. Ako ti ne odgovara, otkaži je ili nam se javi na info@skripta\.ba\.$/, (m, n) => `${n}, your booking has been changed. The new time is below. If it does not suit you, cancel it or write to info@skripta.ba.`],
   [/^Hvala ti, (.+)\. Nadamo se da ti je u COFFICE-u bilo ugodno\.$/, (m, n) => `Thank you, ${n}. We hope you enjoyed COFFICE.`],
   [/^Podsjećamo te na rezervaciju, (.+)\.$/, (m, n) => `A reminder about your booking, ${n}.`],
+  [/^(\d{2}:\d{2}) do (\d{2}:\d{2})$/, (m, a, b) => `${a} to ${b}`],
+  [/^Od (\d{2}:\d{2}) nastavljaš u: (Focus|Lounge) zona\.$/, (m, t, z) => `From ${t} you continue in the ${z} zone.`],
   [/^Ostaješ do (\d{2}:\d{2})\.$/, (m, t) => `You can stay until ${t}.`],
   [/^Tvoj kod: (\d+)$/, (m, c) => `Your code: ${c}`],
   [/^(\[TEST\] )?Hvala na posjeti, SKRIPTA Coffice$/, (m, t) => `${t || ''}Thanks for visiting, SKRIPTA Coffice`],

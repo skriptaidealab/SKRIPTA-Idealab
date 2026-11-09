@@ -1610,6 +1610,8 @@ body.is-openday .poster .hero-price { display: none; }
 .rc-ask { font-weight: 700; margin: 0; }
 .rc-ext { flex-basis: 100%; display: grid; gap: 12px; padding: 16px; border: 1.5px solid var(--ink); background: var(--cream, #f7f5f1); }
 .rc-ext[hidden] { display: none; }
+.rc-ext-body { display: grid; gap: 12px; }
+.rc-zones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .rc-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .rc-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 58px; padding: 8px; border: 1.5px solid var(--ink); background: #fff; font: inherit; cursor: pointer; line-height: 1.2; }
 .rc-opt b { font-size: 1rem; }

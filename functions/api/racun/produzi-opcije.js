@@ -15,12 +15,13 @@ export async function onRequestPost({ request, env }) {
   const now = sarajevoNow(), oldEnd = b.start_min + b.dur_h * 60;
   if (!b.checked_in_at || b.left_at || b.no_show) return json({ ok: false, error: 'Produženje je moguće kad te osoblje označi kao stigao/la.' }, 400);
   if (b.date !== now.date || oldEnd <= now.min) return json({ ok: false, error: 'Moguće je produžiti samo termin koji je u toku.' }, 400);
+  const zona = body.zona === 'ind' || body.zona === 'lounge' ? body.zona : b.zone;
   const sch = await loadSchedule(env);
   let day;
   try { day = await loadDay(env, b.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Javi se osoblju.' }, 503); }
   const opcije = OPCIJE.map((sati) => {
-    const o = ocijeni(b, sati, sch, day);
+    const o = ocijeni(b, sati, sch, day, zona);
     return o.ok ? { sati, ok: true, cijena: o.extra, do: fmt(o.newEnd) } : { sati, ok: false, razlog: o.error };
   }).filter((o) => o.ok || !/ovu zonu/.test(o.razlog)); // opcije koje zona uopće nema (npr. Lounge 6 h) se ne prikazuju
-  return json({ ok: true, kraj: fmt(oldEnd), opcije });
+  return json({ ok: true, kraj: fmt(oldEnd), zona, trenutnaZona: b.zone, opcije });
 }
