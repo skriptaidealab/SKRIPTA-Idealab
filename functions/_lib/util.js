@@ -1,5 +1,5 @@
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-export const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+export const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra } });
 export const page = (title, body, status = 200) => {
   // Same look as the e-mails: white page, big black type, flat colour bar. Accent follows the outcome.
   const accent = /potvrđeno/i.test(title) ? '#5A837B' : /odbijeno|otkazano|nije|prekasno|nemoguće|ne /i.test(title) || status >= 400 ? '#A95457' : '#DCA402';

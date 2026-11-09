@@ -3,12 +3,15 @@ import { json, esc, makeToken, newId, isEmail, clean, emailDomainBad } from '../
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
+import { getUser } from '../_lib/auth.js';
 
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
   if (b.web) return json({ ok: true }); // honeypot: bots fill this hidden field
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
-  const start = +b.pocetak, name = clean(b.ime, 100), email = clean(b.email, 160), phone = clean(b.telefon, 40);
+  // Prijavljen korisnik: email je email računa (potvrđen), rezervacija se veže za račun. Gost: sve kao do sada.
+  let user = null; try { user = await getUser(env, request); } catch (e) { console.error('sesija', e); }
+  const start = +b.pocetak, name = clean(b.ime, 100), email = user ? user.email : clean(b.email, 160), phone = clean(b.telefon, 40);
   const sch = await loadSchedule(env);
   const err = checkQuery(q, sch) || (name.split(/\s+/).length < 2 ? 'Upiši ime i prezime.' : !isEmail(email) ? 'Upiši ispravan email.' : !/^\+?[\d\s().\/-]{6,}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15 ? 'Upiši ispravan broj telefona.' : null);
   if (err) return json({ ok: false, error: err }, 400);
@@ -27,7 +30,9 @@ export async function onRequestPost({ request, env }) {
   }
   const id = newId(), sum = total(q.zone, q.dur, q.persons, q.date, promo ? promo.pct : 0, start, sch);
   // The promo column comes from migrations/2026-11-06-promo.sql; without a code the old insert still works.
-  if (promo) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  if (user) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo ? promo.code : null, user.id).run();
+  else if (promo) await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, promo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, promo.code).run();
   else await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
