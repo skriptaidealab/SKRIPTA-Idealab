@@ -5,7 +5,7 @@ import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
 import { listBlocks, sendMail } from '../_lib/graph.js';
 import { getUser } from '../_lib/auth.js';
-import { checkFlexi, addMonth } from '../_lib/flexi.js';
+import { checkFlexi, rokPaketa } from '../_lib/flexi.js';
 
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
@@ -54,7 +54,7 @@ export async function onRequestPost({ request, env }) {
     const held = (await env.DB.prepare("SELECT COUNT(*) AS n FROM bookings WHERE flexi_paket_id = ? AND status IN ('pending','confirmed') AND checked_in_at IS NULL").bind(flexi.paket.id).first()).n;
     const used = (await env.DB.prepare('SELECT COUNT(*) AS n FROM flexi_posjete WHERE paket_id = ?').bind(flexi.paket.id).first()).n;
     if (!re || used + held > flexi.paket.dolazaka) { await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(id).run(); return json({ ok: false, error: 'Nema slobodnih posjeta u paketu.' }, 409); }
-    await env.DB.prepare('UPDATE flexi_paketi SET expires_at = ?, user_id = ? WHERE id = ? AND expires_at IS NULL').bind(addMonth(q.date), user.id, flexi.paket.id).run();
+    await env.DB.prepare('UPDATE flexi_paketi SET expires_at = ?, user_id = ? WHERE id = ? AND expires_at IS NULL').bind(rokPaketa(q.date), user.id, flexi.paket.id).run();
     await env.DB.prepare('UPDATE flexi_paketi SET user_id = ? WHERE id = ? AND user_id IS NULL').bind(user.id, flexi.paket.id).run();
   }
   if (b.novosti === true) await markOptIn(env, id); // acted on only when the booking is confirmed

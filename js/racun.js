@@ -81,7 +81,7 @@
     if (!d.flexi.length) return null;
     var sec = el('section', { class: 'rc-sec' }, el('h2', { text: 'FLEXI paketi' }));
     d.flexi.forEach(function (p) {
-      var kraj = p.istice ? 'Važi do ' + dmy(p.istice) + '.' : 'Rok od mjesec dana počinje prvom rezervacijom.';
+      var kraj = p.istice ? 'Važi do ' + dmy(p.istice) + '.' : 'Rok od 30 dana počinje prvom rezervacijom.';
       sec.appendChild(el('div', { class: 'rc-flexi' },
         el('h3', { text: p.dolazaka + ' posjeta po ' + p.sati + ' h' }),
         el('p', { class: 'rc-big', text: p.preostalo + ' od ' + p.dolazaka + ' preostalo' }),

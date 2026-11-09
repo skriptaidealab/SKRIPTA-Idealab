@@ -275,7 +275,7 @@ ok(off.status === 404, 'isključen pružalac vraća 404');
 section('FLEXI rezervacija');
 const rez = await import('../functions/api/rezervacija.js');
 const flx = await import('../functions/_lib/flexi.js');
-ok(flx.addMonth('2026-01-31') === '2026-02-28' && flx.addMonth('2026-12-15') === '2027-01-15' && flx.addMonth('2028-01-31') === '2028-02-29' && flx.addMonth('2026-11-10') === '2026-12-10', 'addMonth: kraj mjeseca i prelazak godine');
+ok(flx.rokPaketa('2026-01-31') === '2026-03-02' && flx.rokPaketa('2026-12-15') === '2027-01-14' && flx.rokPaketa('2028-02-01') === '2028-03-02' && flx.rokPaketa('2026-11-10') === '2026-12-10', 'rokPaketa: 30 dana, prelazak mjeseca i godine');
 const ckD = await login('dina@gmail.com', '7.7.7.1');
 const dinaId = (await db.prepare('SELECT id FROM users WHERE email = ?').bind('dina@gmail.com').first()).id;
 const ins = async (email, sati, dol, extra = '') => (await db.prepare('INSERT INTO flexi_paketi (created_at, ime, email, sati, dolazaka, cijena) VALUES (?,?,?,?,?,?)').bind(new Date().toISOString(), 'Test', email, sati, dol, 90).run(), (await db.prepare('SELECT MAX(id) AS id FROM flexi_paketi').first()).id);
@@ -291,7 +291,7 @@ const f1 = await book({ flexi: pk4 });
 ok(f1.j.ok === true, 'FLEXI rezervacija prolazi: ' + JSON.stringify(f1.j));
 const fb = await db.prepare('SELECT * FROM bookings WHERE flexi_paket_id = ?').bind(pk4).first();
 ok(fb && fb.total === 0 && fb.user_id === dinaId && fb.email === 'dina@gmail.com', 'FLEXI rezervacija: iznos 0, vezana za račun, email računa (ne onaj iz forme)');
-ok((await db.prepare('SELECT expires_at, user_id FROM flexi_paketi WHERE id = ?').bind(pk4).first()).expires_at === flx.addMonth(day), 'rok = mjesec od datuma prve rezervacije s paketom');
+ok((await db.prepare('SELECT expires_at, user_id FROM flexi_paketi WHERE id = ?').bind(pk4).first()).expires_at === flx.rokPaketa(day), 'rok = 30 dana od datuma prve rezervacije s paketom');
 ok(sent.at(-1).htmlContent.includes('FLEXI paket') || sent.at(-2).htmlContent.includes('FLEXI paket'), 'mail pominje FLEXI paket, ne cijenu');
 const f2 = await book({ flexi: pk4, pocetak: 720 }); // 12:00-16:00 isti dan: drugi termin
 ok(f2.j.ok === true, 'druga posjeta iz istog paketa prolazi');

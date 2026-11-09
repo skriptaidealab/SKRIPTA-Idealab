@@ -1,9 +1,7 @@
 // FLEXI paketi vezani za račun. Posjeta se skida tek pri check-inu (nadzorna ploča), ovdje se samo rezerviše.
-// Rok važenja: mjesec dana od datuma prve rezervacije s tim paketom.
-export function addMonth(date) {
-  const y = +date.slice(0, 4), m = +date.slice(5, 7), d = +date.slice(8, 10);
-  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); // zadnji dan sljedećeg mjeseca
-  const t = new Date(Date.UTC(y, m, Math.min(d, last)));
+// Rok važenja: 30 dana od datuma prve rezervacije s tim paketom (taj dan se može koristiti i 30. dan poslije).
+export function rokPaketa(date) {
+  const t = new Date(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10) + 30));
   return t.toISOString().slice(0, 10);
 }
 const dmy = (d) => d.split('-').reverse().join('.');

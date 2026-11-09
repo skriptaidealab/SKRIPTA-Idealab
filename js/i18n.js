@@ -37,7 +37,7 @@
     'Produženje se plaća po dolasku, kao i ostalo.': 'Extensions are paid on arrival, like everything else.',
     'Produženje nije uspjelo.': 'The extension failed.', 'Otkaži': 'Cancel', 'Sigurno otkazati?': 'Cancel for sure?', 'Da, otkaži': 'Yes, cancel', 'Ne': 'No',
     'Otkazivanje nije uspjelo.': 'Cancelling failed.',
-    'FLEXI paketi': 'FLEXI packages', 'Rok od mjesec dana počinje prvom rezervacijom.': 'The one-month period starts with your first booking.',
+    'FLEXI paketi': 'FLEXI packages', 'Rok od 30 dana počinje prvom rezervacijom.': 'The 30-day period starts with your first booking.',
     'Rezerviši posjetu': 'Book a visit', 'Ime Prezime': 'Full name', 'Ime i prezime': 'Full name', 'Telefon': 'Phone', 'Spremi': 'Save',
     'Spremljeno.': 'Saved.', 'Nije spremljeno.': 'Not saved.', 'Kod s emaila': 'Emailed code', 'Profil': 'Profile',
     'Ime i telefon koristimo samo za tvoje rezervacije.': 'We only use your name and phone for your bookings.',
