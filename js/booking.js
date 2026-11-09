@@ -20,7 +20,7 @@
     promoWrap: $('#b-promo-wrap'), promo: $('#b-promo'), promoBtn: $('#b-promo-btn'), promoErr: $('#e-promo'), promoOk: $('#o-promo'),
     name: $('#b-name'), email: $('#b-email'), phone: $('#b-phone'), web: $('#b-web'), news: $('#b-news'), out: $('#b-out'), err: $('#b-err')
   };
-  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0, promo: null, promoSig: '', sched: null, quote: null, quoting: '' };
+  var state = { zone: 'ind', dur: 1, start: null, live: false, seq: 0, promo: null, promoSig: '', sched: null, quote: null, quoting: '', acct: null, flexi: null, flexiOn: false };
   function km(n) { return String(n).replace('.', ','); }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -195,6 +195,7 @@
   }
   /* Price for the current choice, with the promo discount when a code is applied (server rounds the same way, to 0,5 KM). */
   function curTotal() {
+    if (state.flexiOn) return 0;
     if (isFree()) return 0;
     var q = currentQuote(), pct = Math.max(state.promo ? state.promo.pct : 0, q ? q.pct : 0); // the better of promo code and schedule discount
     return Math.max(0, Math.round(PRICES[state.zone][state.dur] * persons() * (1 - pct / 100) * 2) / 2);
@@ -228,6 +229,7 @@
     el.promo.addEventListener('input', function () { if (state.promo && el.promo.value.trim().toUpperCase() !== state.promo.code) { state.promo = null; promoMsg('', ''); update(); } });
   }
   function update() {
+    syncFlexi();
     var n = persons(), p = PRICES[state.zone][state.dur], total = curTotal();
     if (state.promo && state.promoSig !== promoSig() && state.promoSig) checkPromo(false); // zone, date or length changed: check the code again
     el.sZone.textContent = NAMES[state.zone];
@@ -273,7 +275,7 @@
   function fail(text, field) { el.err.textContent = text; el.err.hidden = false; el.out.hidden = true; if (field) field.focus(); }
   el.btn.addEventListener('click', function () {
     if (state.start === null) return;
-    var name = el.name.value.trim(), email = el.email.value.trim(), phone = el.phone.value.trim();
+    var name = el.name.value.trim(), email = (state.acct ? state.acct.email : el.email.value).trim(), phone = el.phone.value.trim();
     var bad = ['name', 'email', 'phone'].filter(function (k) { return validate(k, true); });
     if (bad.length) { el[bad[0]].focus(); return fail(bad.length > 1 ? 'Dopuni označena polja.' : fieldErr(bad[0]).textContent); }
     el.err.hidden = true;
@@ -285,7 +287,7 @@
     el.btn.disabled = true; el.btn.textContent = 'Šaljem...';
     fetch('/api/rezervacija', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, novosti: !!(el.news && el.news.checked), kod: el.promo ? el.promo.value.trim() : '', web: el.web.value })
+      body: JSON.stringify({ zona: state.zone, trajanje: state.dur, osobe: n, datum: el.date.value, pocetak: state.start, ime: name, email: email, telefon: phone, novosti: !!(el.news && el.news.checked), kod: el.promo ? el.promo.value.trim() : '', web: el.web.value, flexi: state.flexiOn && state.flexi ? state.flexi.id : undefined })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
       .then(function (res) {
         el.btn.textContent = 'Pošalji zahtjev';
@@ -296,6 +298,66 @@
       })
       .catch(function () { el.btn.disabled = false; el.btn.textContent = 'Pošalji zahtjev'; fail('Slanje nije uspjelo. Piši nam na info@skripta.ba.'); });
   });
+
+
+  /* ---------- račun: prijava, gost, FLEXI ---------- */
+  var A = window.SkriptaAuth;
+  function syncFlexi() {
+    var wrap = document.getElementById('b-flexi-wrap'), box = document.getElementById('b-flexi'), txt = document.getElementById('b-flexi-txt');
+    if (!wrap || !box) return;
+    var pk = null;
+    if (state.acct && state.zone === 'ind' && persons() === 1) {
+      (state.acct.flexi || []).forEach(function (p) {
+        if (!pk && p.slobodno > 0 && p.sati === state.dur && (!p.istice || !el.date.value || p.istice >= el.date.value)) pk = p;
+      });
+    }
+    state.flexi = pk;
+    if (!pk) { state.flexiOn = false; box.checked = false; wrap.hidden = true; return; }
+    wrap.hidden = false;
+    txt.textContent = 'Iskoristi FLEXI paket (' + pk.slobodno + ' slobodno). Bez doplate. Posjeta se skida kad te osoblje označi kao stigao/la.';
+    state.flexiOn = box.checked;
+  }
+  (function () {
+    var box = document.getElementById('b-flexi');
+    if (box) box.addEventListener('change', function () { state.flexiOn = box.checked; update(); });
+  })();
+  function lockFields(on) {
+    el.email.readOnly = on;
+    if (on && state.acct) {
+      el.email.value = state.acct.email;
+      if (!el.name.value && state.acct.name) el.name.value = state.acct.name;
+      if (!el.phone.value && state.acct.phone) el.phone.value = state.acct.phone;
+    }
+  }
+  function nextStep() { return { zona: state.zone, datum: el.date.value }; }
+  function drawAcct() {
+    var bar = document.getElementById('b-acct'), lg = document.getElementById('b-acct-login');
+    if (!bar || !lg || !A) return;
+    bar.textContent = ''; lg.textContent = ''; lg.hidden = true; bar.hidden = false;
+    if (state.acct) {
+      lockFields(true);
+      bar.appendChild(A.el('p', { class: 'hint', text: 'Prijavljen/a kao ' + state.acct.email + '. ' }, A.el('button', { type: 'button', class: 'rc-link', text: 'Odjavi se', onclick: function () {
+        A.api('/api/racun/odjava', {}).then(function () { state.acct = null; el.email.value = ''; lockFields(false); A.me(true); drawAcct(); update(); });
+      } })));
+    } else {
+      lockFields(false);
+      var open = A.el('button', { type: 'button', class: 'btn btn-outline', text: 'Prijavi se / napravi račun', onclick: function () {
+        lg.hidden = false; open.hidden = true;
+        A.mountLogin(lg, { kompaktno: true, nazad: nextStep, onDone: function () { loadAcct(); } });
+      } });
+      bar.appendChild(A.el('p', { class: 'hint', text: 'Prijava je izborna. Račun ti daje pregled rezervacija, produženje termina i FLEXI pakete.' }));
+      bar.appendChild(open);
+      bar.appendChild(A.el('p', { class: 'hint', text: 'Ili samo popuni podatke ispod kao gost.' }));
+    }
+  }
+  function loadAcct() {
+    if (!A) return;
+    A.me(true).then(function (d) {
+      state.acct = d && d.ok && d.user ? { email: d.user.email, name: d.user.name || '', phone: d.user.phone || '', flexi: d.flexi || [] } : null;
+      drawAcct(); update();
+    });
+  }
+  loadAcct();
 
   /* ---------- init: date range ---------- */
   /* ---------- day picker: Sundays are shown but cannot be clicked ---------- */

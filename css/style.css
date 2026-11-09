@@ -1531,3 +1531,52 @@ body.is-openday .poster .hero-price { display: none; }
 /* Map in the "Kako do nas" block */
 .prac .map-embed { aspect-ratio: 4 / 3.4; min-height: 280px; }
 .prac .map-embed iframe { width: 100%; height: 100%; border: 0; }
+
+/* ---------- Korisnički račun ---------- */
+.acct-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: 14px; color: var(--ink); border: 1px solid var(--ink); border-radius: 50%; text-decoration: none; transition: background 0.15s ease, color 0.15s ease; }
+.acct-btn:hover, .acct-btn:focus-visible { background: var(--ink); color: var(--paper); }
+@media (max-width: 860px) {
+  .header-inner .logo { margin-right: auto; }
+  .acct-btn { order: 2; margin-left: 0; margin-right: 8px; }
+  .nav-toggle { order: 3; }
+}
+.rc-page { padding: 48px 0 80px; background: var(--paper); }
+.rc-page h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1; letter-spacing: -0.02em; margin: 0 0 12px; }
+.rc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.rc-sec { margin-top: 40px; }
+.rc-sec h2 { font-size: 1.4rem; margin: 0 0 14px; }
+.rc-card { border: 1px solid var(--ink); padding: 24px; background: #fff; max-width: 480px; }
+.rc-lead { margin: 0 0 16px; }
+.rc-fine { font-size: 0.88rem; color: var(--ink-soft); margin: 6px 0; }
+.rc-empty { color: var(--ink-soft); }
+.rc-providers { display: grid; gap: 10px; margin-bottom: 8px; }
+.rc-prov { text-align: center; }
+.rc-or { text-align: center; color: var(--ink-soft); margin: 14px 0; font-size: 0.9rem; }
+.rc-form { display: grid; gap: 12px; }
+.rc-form input[type="email"], .rc-form input[type="text"], .rc-form input[type="tel"], .rc-del input[type="email"] { width: 100%; padding: 12px; border: 1px solid var(--ink); border-radius: 0; font: inherit; background: #fff; box-sizing: border-box; }
+.rc-code { letter-spacing: 0.4em; font-size: 1.4rem; text-align: center; }
+.rc-link { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.rc-msg { margin: 8px 0 0; color: #a02020; font-size: 0.92rem; }
+.rc-msg.ok { color: #2b6b4a; }
+.rc-msg[hidden], .rc-del[hidden] { display: none; }
+.rc-banner { padding: 12px 14px; border: 1px solid var(--ink); background: #fff; margin: 0 0 16px; }
+.rc-banner.warn { border-color: #a02020; }
+.rc-booking { border: 1px solid var(--ink); background: #fff; padding: 16px; margin-bottom: 12px; display: grid; gap: 10px; }
+.rc-booking h3 { margin: 0 0 4px; font-size: 1.1rem; }
+.rc-booking p { margin: 0; }
+.rc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rc-chip { font-size: 0.78rem; padding: 3px 10px; border: 1px solid var(--ink); border-radius: 999px; }
+.rc-chip.s-confirmed { background: var(--mustard); }
+.rc-chip.flexi { background: var(--ink); color: var(--paper); }
+.rc-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.rc-ask { font-weight: 600; }
+.rc-flexi { border: 1px solid var(--ink); background: #fff; padding: 16px; margin-bottom: 12px; }
+.rc-flexi h3 { margin: 0 0 4px; }
+.rc-big { font-size: 1.6rem; font-weight: 700; margin: 4px 0; }
+.rc-check { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; }
+.rc-del { margin-top: 14px; padding: 16px; border: 1px solid #a02020; background: #fff; display: grid; gap: 10px; }
+.b-acct { margin: 0 0 16px; display: grid; gap: 8px; justify-items: start; }
+.b-acct .hint { margin: 0; }
+.b-acct-login { margin: 0 0 18px; padding: 16px; border: 1px solid var(--ink); background: #fff; }
+.b-acct-login[hidden], .b-acct[hidden] { display: none; }
+input[readonly]#b-email { background: #f2f0ea; }
