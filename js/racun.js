@@ -6,6 +6,8 @@
 
   function dmy(d) { return d.split('-').reverse().join('.'); }
   function km(n) { return String(n).replace('.', ','); }
+  var EN = document.documentElement.lang === 'en';
+  var MON = EN ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
   var STATUS = { pending: 'Čeka potvrdu', confirmed: 'Potvrđeno', cancelled: 'Otkazano', rejected: 'Odbijeno' };
   var params = new URLSearchParams(location.search);
 
@@ -18,9 +20,15 @@
       if (greska) root.appendChild(banner(greska === 'email' ? 'Pružalac prijave nam nije dao email adresu. Prijavi se kodom s emaila.' : 'Prijava nije uspjela. Pokušaj ponovo ili koristi kod s emaila.', 'warn'));
       if (!d.ok) { root.appendChild(el('h1', { text: 'Moj račun' })); root.appendChild(banner(d.error || 'Ne možemo učitati podatke. Pokušaj ponovo.', 'warn')); return; }
       if (!d.user) {
+        root.appendChild(el('span', { class: 'eyebrow', text: 'SKRIPTA Coffice' }));
         root.appendChild(el('h1', { text: 'Moj račun' }));
+        root.appendChild(el('p', { class: 'rc-intro', text: 'Rezervacije, produženje termina i FLEXI paketi na jednom mjestu.' }));
         var box = el('div', { class: 'rc-card' });
-        root.appendChild(box);
+        var perks = el('ul', { class: 'rc-perks' },
+          el('li', {}, el('span', {}, 'Sve rezervacije na jednom mjestu', el('small', { text: 'Nadolazeće i prošle, s jasnim statusom.' }))),
+          el('li', {}, el('span', {}, 'Produži termin jednim klikom', el('small', { text: 'Kad ti treba još sat vremena, ako je mjesto slobodno.' }))),
+          el('li', {}, el('span', {}, 'Prati FLEXI posjete', el('small', { text: 'Vidiš koliko ti je posjeta ostalo i do kad važe.' }))));
+        root.appendChild(el('div', { class: 'rc-split' }, box, perks));
         A.mountLogin(box, { pending: params.get('potvrda') || null, onDone: function () { history.replaceState(null, '', location.pathname.split('/').pop() || 'racun.html'); params = new URLSearchParams(''); render(); } });
         return;
       }
@@ -29,12 +37,15 @@
   }
 
   function bookingCard(b, d) {
-    var chips = el('div', { class: 'rc-chips' }, el('span', { class: 'rc-chip s-' + b.status, text: b.faza === 'trenutna' && b.status === 'confirmed' ? 'U toku' : STATUS[b.status] || b.status }));
+    var live = b.faza === 'trenutna' && b.status === 'confirmed';
+    var chips = el('div', { class: 'rc-chips' }, el('span', { class: 'rc-chip s-' + b.status + (live ? ' live' : ''), text: b.faza === 'trenutna' && b.status === 'confirmed' ? 'U toku' : STATUS[b.status] || b.status }));
     if (b.flexi) chips.appendChild(el('span', { class: 'rc-chip flexi', text: 'FLEXI' }));
     var price = b.flexi ? 'FLEXI paket' : (b.iznos === 0 ? 'Besplatno' : km(b.iznos) + ' KM');
     var msg = el('p', { class: 'rc-msg', role: 'alert', hidden: '' });
     var actions = el('div', { class: 'rc-actions' });
-    var card = el('article', { class: 'rc-booking' },
+    var dp = b.datum.split('-');
+    var card = el('article', { class: 'rc-booking f-' + b.faza + (b.status === 'cancelled' || b.status === 'rejected' ? ' is-off' : '') },
+      el('div', { class: 'rc-date', 'aria-hidden': 'true' }, el('span', { class: 'd', text: String(+dp[2]) }), el('span', { class: 'm', text: MON[+dp[1] - 1] })),
       el('div', { class: 'rc-b-main' },
         el('h3', { text: dmy(b.datum) + ', ' + b.od + ' do ' + b.do }),
         el('p', { text: b.zonaNaziv + (b.osoba > 1 ? ', ' + b.osoba + ' osobe' : '') + ' · ' + b.trajanje + ' h · ' + price }),
@@ -77,6 +88,12 @@
     return sec;
   }
 
+  function visits(p) {
+    var w = el('div', { class: 'rc-visits', 'aria-hidden': 'true' });
+    for (var i = 0; i < p.dolazaka && i < 30; i++) w.appendChild(el('i', { class: i < p.preostalo ? 'on' : '' }));
+    return w;
+  }
+
   function flexiSection(d) {
     if (!d.flexi.length) return null;
     var sec = el('section', { class: 'rc-sec' }, el('h2', { text: 'FLEXI paketi' }));
@@ -85,6 +102,7 @@
       sec.appendChild(el('div', { class: 'rc-flexi' },
         el('h3', { text: p.dolazaka + ' posjeta po ' + p.sati + ' h' }),
         el('p', { class: 'rc-big', text: p.preostalo + ' od ' + p.dolazaka + ' preostalo' }),
+        visits(p),
         el('p', { text: (p.rezervisano ? p.rezervisano + ' već rezervisano. ' : '') + kraj + ' Posjeta se skida kad te osoblje označi kao stigao/la.' }),
         p.slobodno > 0 ? el('a', { class: 'btn btn-solid', href: 'coffice.html#rezervacija', text: 'Rezerviši posjetu' }) : null));
     });
@@ -143,7 +161,7 @@
     var up = d.bookings.filter(function (b) { return b.faza === 'nadolazeca'; }).sort(function (a, b) { return (a.datum + a.od) < (b.datum + b.od) ? -1 : 1; });
     var past = d.bookings.filter(function (b) { return b.faza === 'prosla'; });
     root.appendChild(el('div', { class: 'rc-head' },
-      el('div', {}, el('h1', { text: 'Moj račun' }), el('p', { class: 'rc-fine', text: d.user.name ? d.user.name + ' · ' + d.user.email : d.user.email })),
+      el('div', {}, el('span', { class: 'eyebrow', text: 'SKRIPTA Coffice' }), el('h1', { text: 'Moj račun' }), el('p', { class: 'rc-who', text: d.user.name ? d.user.name + ' · ' + d.user.email : d.user.email })),
       el('button', { type: 'button', class: 'btn btn-outline', text: 'Odjavi se', onclick: function () { A.api('/api/racun/odjava', {}).then(function () { A.me(true); render(); }); } })));
     if (cur.length) root.appendChild(list('Trenutni termin', cur, '', d));
     root.appendChild(list('Nadolazeće rezervacije', up, 'Nemaš nadolazećih rezervacija.', d));
