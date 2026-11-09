@@ -110,6 +110,15 @@ export const newUserId = () => randomToken(16);
 // Gostujuće rezervacije s istim (potvrđenim) emailom postaju dio računa.
 export async function attachBookings(env, user) {
   await env.DB.prepare('UPDATE bookings SET user_id = ? WHERE user_id IS NULL AND lower(email) = ?').bind(user.id, user.email).run();
+  // Ime i prezime iz zadnje rezervacije, samo ako račun još nema ime.
+  if (!user.name) {
+    const b = await env.DB.prepare("SELECT name FROM bookings WHERE user_id = ? AND name IS NOT NULL AND trim(name) <> '' ORDER BY created_at DESC LIMIT 1").bind(user.id).first();
+    if (b && b.name) {
+      const ime = String(b.name).trim().slice(0, 100);
+      await env.DB.prepare('UPDATE users SET name = ? WHERE id = ? AND (name IS NULL OR name = ?)').bind(ime, user.id, '').run();
+      user.name = ime;
+    }
+  }
 }
 export async function findOrCreateUser(env, email, name) {
   let u = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
