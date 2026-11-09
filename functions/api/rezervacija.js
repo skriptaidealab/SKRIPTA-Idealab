@@ -1,4 +1,5 @@
 import { checkQuery, freeStarts, loadDay, loadSchedule, discountFor, total, priceText, applyPromo, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { json, esc, makeToken, newId, isEmail, clean, emailDomainBad } from '../_lib/util.js';
 import { mail } from '../_lib/mail.js';
 import { markOptIn } from '../_lib/newsletter.js';
@@ -9,6 +10,7 @@ import { checkFlexi, addMonth } from '../_lib/flexi.js';
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
   if (b.web) return json({ ok: true }); // honeypot: bots fill this hidden field
+  const lang = b.lang === 'en' ? 'en' : 'bs'; // jezik stranice na kojoj je gost rezervisao: na njemu idu i mailovi
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
   // Prijavljen korisnik: email je email računa (potvrđen), rezervacija se veže za račun. Gost: sve kao do sada.
   let user = null; try { user = await getUser(env, request); } catch (e) { console.error('sesija', e); }
@@ -45,6 +47,7 @@ export async function onRequestPost({ request, env }) {
   else await env.DB.prepare('INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, new Date().toISOString(), 'pending', q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
 
+  if (lang === 'en') { try { await env.DB.prepare("UPDATE bookings SET lang = 'en' WHERE id = ?").bind(id).run(); } catch (e) { console.error('lang', e); } }
   if (flexi) {
     // Istovremene rezervacije ne smiju premašiti paket: ako je ova višak, povlači se.
     const re = await checkFlexi(env, user, flexi.paket.id, { ...q, persons: 1 }).catch(() => null);
@@ -64,7 +67,7 @@ export async function onRequestPost({ request, env }) {
   const withdraw = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, id, 'otkazi')}`;
   try {
     await sendMail(env, { to: env.MAILBOX, replyTo: email, subject: `Zahtjev za rezervaciju: ${NAMES[q.zone]}, ${when}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Čeka odluku', tone: 'wait', title: 'Novi zahtjev za rezervaciju.', lead: 'Termin je zauzet tek kad potvrdiš. Klik otvara stranicu na kojoj potvrđuješ odluku.', rows: [...rows, ...guest], buttons: [{ href: yes, label: 'Potvrdi i dodaj u kalendar' }, { href: no, label: 'Odbij', kind: 'ghost' }] }) });
-    await sendMail(env, { to: email, subject: 'Primili smo tvoj zahtjev za rezervaciju', html: mail({ chip: 'Još nije potvrđeno', tone: 'wait', title: 'Zahtjev je primljen.', lead: `Hvala, ${esc(name)}. Termin je tvoj tek kad ti potvrdimo emailom.`, rows, buttons: [{ href: withdraw, label: 'Otkaži zahtjev', kind: 'ghost' }], note: 'Kafa ili čaj su besplatni. Ako trebaš promjenu, odgovori na ovaj email.' }) });
+    await sendMail(env, { to: email, subject: tr(lang, 'Primili smo tvoj zahtjev za rezervaciju'), html: mail({ lang: lang, chip: 'Još nije potvrđeno', tone: 'wait', title: 'Zahtjev je primljen.', lead: `Hvala, ${esc(name)}. Termin je tvoj tek kad ti potvrdimo emailom.`, rows, buttons: [{ href: withdraw, label: 'Otkaži zahtjev', kind: 'ghost' }], note: 'Kafa ili čaj su besplatni. Ako trebaš promjenu, odgovori na ovaj email.' }) });
   } catch (e) {
     console.error(e);
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(id).run();

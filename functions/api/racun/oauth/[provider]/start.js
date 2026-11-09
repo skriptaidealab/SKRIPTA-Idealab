@@ -12,10 +12,11 @@ export async function onRequestGet({ request, env, params }) {
   if (!(await rateLimit(env, 'oauth-start:' + clientIp(request), 30, 600))) return new Response('Previše pokušaja.', { status: 429 });
   // Povratak u formu za rezervaciju: samo provjerene vrijednosti, nikad proizvoljan URL.
   const q = here.searchParams;
-  let ret = '';
+  const en = q.get('l') === 'en' ? 'en:' : '';
+  let ret = en;
   if (q.get('nazad') === 'coffice') {
     const z = ['ind', 'lounge'].includes(q.get('zona')) ? q.get('zona') : '', d = /^\d{4}-\d{2}-\d{2}$/.test(q.get('datum') || '') ? q.get('datum') : '';
-    ret = `c|${z}|${d}`;
+    ret = `${en}c|${z}|${d}`;
   }
   return new Response(null, { status: 302, headers: { location: await startUrl(env, p, ret), 'cache-control': 'no-store' } });
 }

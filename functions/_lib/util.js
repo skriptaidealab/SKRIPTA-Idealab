@@ -1,9 +1,9 @@
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra } });
-export const page = (title, body, status = 200) => {
+export const page = (title, body, status = 200, lang = 'bs') => {
   // Same look as the e-mails: white page, big black type, flat colour bar. Accent follows the outcome.
-  const accent = /potvrđeno/i.test(title) ? '#5A837B' : /odbijeno|otkazano|nije|prekasno|nemoguće|ne /i.test(title) || status >= 400 ? '#A95457' : '#DCA402';
-  return new Response(`<!doctype html><html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><style>
+  const accent = /potvrđeno|confirmed/i.test(title) ? '#5A837B' : /odbijeno|otkazano|nije|prekasno|nemoguće|ne |cancelled|not |too late|invalid/i.test(title) || status >= 400 ? '#A95457' : '#DCA402';
+  return new Response(`<!doctype html><html lang="${lang === 'en' ? 'en' : 'bs'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><style>
 *{box-sizing:border-box}body{margin:0;background:#fff;color:#1A1A1A;font:16px/1.55 "Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .bar{height:14px;background:${accent}}main{max-width:600px;margin:0 auto;padding:28px 24px 48px}
 .brand{font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin:0 0 22px}

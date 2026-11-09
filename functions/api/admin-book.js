@@ -1,4 +1,5 @@
 import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
@@ -72,7 +73,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, id, 'otkazi')}`;
     const icsUrl = `${env.SITE_URL}/api/kalendar?t=${await makeToken(env, id, 'kalendar')}`;
-    await sendMail(env, { to: r.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(r.name)}.`, rows: [['Zona', zoneLabel(r)], ['Termin', whenOf(r)], ['Ukupno', priceText(r.total)]], buttons: [{ href: googleUrl(r), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: r.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
+    await sendMail(env, { to: r.email, subject: tr(langOf(r), 'Rezervacija potvrđena: SKRIPTA Coffice'), html: mail({ lang: langOf(r), chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(r.name)}.`, rows: [['Zona', zoneLabel(r)], ['Termin', whenOf(r)], ['Ukupno', priceText(r.total)]], buttons: [{ href: googleUrl(r), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: r.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
   } catch (e) { console.error(e); mailed = String(e.message || e); }
   return json({ ok: true, id, calendar, mail: mailed });
 }

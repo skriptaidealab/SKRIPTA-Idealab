@@ -1,4 +1,5 @@
 import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, promoPctOf, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { esc, makeToken, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../_lib/graph.js';
@@ -70,7 +71,7 @@ export async function onRequestPost({ request, env }) {
     try {
       const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, r.id, 'otkazi')}`;
       const icsUrl = `${env.SITE_URL}/api/kalendar?t=${await makeToken(env, r.id, 'kalendar')}`;
-      await sendMail(env, { to: r.email, subject: 'Rezervacija izmijenjena: SKRIPTA Coffice', html: mail({ chip: 'Izmijenjeno', tone: 'ok', accent: C.teal, title: 'Termin je promijenjen.', lead: `${esc(r.name)}, tvoja rezervacija je izmijenjena. Novi termin je ispod. Ako ti ne odgovara, otkaži je ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(r)], ['Prije', whenOf(old)], ['Novi termin', whenOf(r)], ['Ukupno', priceText(r.total)]], buttons: [{ href: googleUrl(r), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }] }) });
+      await sendMail(env, { to: r.email, subject: tr(langOf(r), 'Rezervacija izmijenjena: SKRIPTA Coffice'), html: mail({ lang: langOf(r), chip: 'Izmijenjeno', tone: 'ok', accent: C.teal, title: 'Termin je promijenjen.', lead: `${esc(r.name)}, tvoja rezervacija je izmijenjena. Novi termin je ispod. Ako ti ne odgovara, otkaži je ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(r)], ['Prije', whenOf(old)], ['Novi termin', whenOf(r)], ['Ukupno', priceText(r.total)]], buttons: [{ href: googleUrl(r), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }] }) });
     } catch (e) { console.error(e); mailed = String(e.message || e); }
   }
   return json({ ok: true, calendar, mail: mailed });

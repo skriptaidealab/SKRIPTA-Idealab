@@ -1,6 +1,7 @@
 // Sends a reminder email to guests about 24 hours before a confirmed booking.
 // Called hourly by a GitHub Actions schedule (see .github/workflows/podsjetnik.yml). Protected by CRON_SECRET.
 import { NAMES, fmt, sarajevoNow, dayNum, priceText, zoneLabel } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { makeToken, esc, isEmail } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { sendMail } from '../_lib/graph.js';
@@ -11,7 +12,7 @@ const abs = (date, min) => dayNum(date) * 1440 + min;
 async function sendReminder(env, b, test = false) {
   const when = `${b.date.split('-').reverse().join('.')} ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
   const cancel = test ? `${env.SITE_URL}/coffice.html#rezervacija` : `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Podsjetnik: tvoja rezervacija u ${fmt(b.start_min)}, SKRIPTA Coffice`, html: mail({ chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Vidimo se uskoro.', lead: `Podsjećamo te na rezervaciju, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', when], ['Ukupno', priceText(b.total)]], buttons: [{ href: cancel, label: 'Ne mogu doći, otkaži', kind: 'ghost' }], note: 'Ako ne možeš doći, otkaži da mjesto bude slobodno za nekog drugog.' }) });
+  await sendMail(env, { to: b.email, subject: tr(langOf(b), `${test ? '[TEST] ' : ''}Podsjetnik: tvoja rezervacija u ${fmt(b.start_min)}, SKRIPTA Coffice`), html: mail({ lang: langOf(b), chip: 'Podsjetnik', tone: 'ok', accent: C.teal, title: 'Vidimo se uskoro.', lead: `Podsjećamo te na rezervaciju, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', when], ['Ukupno', priceText(b.total)]], buttons: [{ href: cancel, label: 'Ne mogu doći, otkaži', kind: 'ghost' }], note: 'Ako ne možeš doći, otkaži da mjesto bude slobodno za nekog drugog.' }) });
 }
 
 export async function onRequestPost({ request, env }) {

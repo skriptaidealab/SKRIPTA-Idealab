@@ -1,4 +1,5 @@
 import { checkQuery, freeStarts, loadDay, tableFor, priceText, promoLine, NAMES, fmt, zoneLabel } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { page, esc, clean, makeToken, readToken } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { subscribeIfOptedIn } from '../_lib/newsletter.js';
@@ -59,7 +60,7 @@ export async function onRequestPost({ request, env }) {
     await env.DB.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").bind(b.id).run();
     let calNote = '';
     if (b.event_id) { try { await deleteEvent(env, b.event_id); } catch (e) { console.error(e); calNote = '<p><b>Upozorenje:</b> događaj nije obrisan iz kalendara. Obrišite ga ručno.</p>'; } }
-    await sendMail(env, { to: b.email, subject: 'Otkazana rezervacija: SKRIPTA Coffice', html: mail({ chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
+    await sendMail(env, { to: b.email, subject: tr(langOf(b), 'Otkazana rezervacija: SKRIPTA Coffice'), html: mail({ lang: langOf(b), chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/${cofficePage(langOf(b))}#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
     return page('Otkazano', `<h1>Rezervacija otkazana</h1><p>Gost je obaviješten emailom. Razlog: ${esc(why.text)}${b.event_id && !calNote ? ' Događaj je uklonjen iz kalendara.' : ''}</p>${calNote}${summary(b)}`);
   }
 
@@ -69,7 +70,7 @@ export async function onRequestPost({ request, env }) {
     const why = pickReason('odbij', f);
     if (!why) return page('Navedi razlog', `<h1>Navedi razlog odbijanja</h1>${summary(b)}${reasonForm(t, 'odbij', 'Odbij zahtjev', { err: 'Odaberi razlog ili upiši svoj.' })}`, 400);
     await env.DB.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").bind(b.id).run();
-    await sendMail(env, { to: b.email, subject: 'Tvoj zahtjev za rezervaciju', html: mail({ chip: 'Nije potvrđeno', tone: 'no', accent: C.rose, title: 'Ne možemo potvrditi termin.', lead: `Nažalost ne možemo potvrditi traženi termin. Odaberi drugi na skripta.ba ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi drugi termin' }] }) });
+    await sendMail(env, { to: b.email, subject: tr(langOf(b), 'Tvoj zahtjev za rezervaciju'), html: mail({ lang: langOf(b), chip: 'Nije potvrđeno', tone: 'no', accent: C.rose, title: 'Ne možemo potvrditi termin.', lead: `Nažalost ne možemo potvrditi traženi termin. Odaberi drugi na skripta.ba ili nam se javi na info@skripta.ba.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ['Razlog', why.text]], buttons: [{ href: `${env.SITE_URL}/${cofficePage(langOf(b))}#rezervacija`, label: 'Odaberi drugi termin' }] }) });
     return page('Odbijeno', `<h1>Zahtjev odbijen</h1><p>Gost je obaviješten emailom. Razlog: ${esc(why.text)}</p>`);
   }
 
@@ -89,6 +90,6 @@ export async function onRequestPost({ request, env }) {
   await subscribeIfOptedIn(env, b);
   const cancel = `${env.SITE_URL}/api/otkazi?t=${await makeToken(env, b.id, 'otkazi')}`;
   const icsUrl = `${env.SITE_URL}/api/kalendar?t=${await makeToken(env, b.id, 'kalendar')}`;
-  await sendMail(env, { to: b.email, subject: 'Rezervacija potvrđena: SKRIPTA Coffice', html: mail({ chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ...(b.promo ? [['Promo kod', promoLine(b)]] : []), ['Ukupno', payText(b)]], buttons: [{ href: googleUrl(b), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
+  await sendMail(env, { to: b.email, subject: tr(langOf(b), 'Rezervacija potvrđena: SKRIPTA Coffice'), html: mail({ lang: langOf(b), chip: 'Potvrđeno', tone: 'ok', accent: C.teal, title: 'Vidimo se.', lead: `Tvoja rezervacija je potvrđena, ${esc(b.name)}.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)], ...(b.promo ? [['Promo kod', promoLine(b)]] : []), ['Ukupno', payText(b)]], buttons: [{ href: googleUrl(b), label: 'Dodaj u Google kalendar' }, { href: icsUrl, label: 'Apple / Outlook', kind: 'ghost' }, { href: cancel, label: 'Otkaži rezervaciju', kind: 'ghost' }], note: b.total === 0 ? 'Kafa ili čaj su besplatni.' : 'Plaćanje je po dolasku, gotovinom ili karticom. Kafa ili čaj su besplatni.' }) });
   return page('Potvrđeno', `<h1>Potvrđeno</h1><p>Gost je obaviješten emailom.${eventId ? ' Događaj je u kalendaru.' : ''}</p>${calendarNote}${summary(b)}`);
 }

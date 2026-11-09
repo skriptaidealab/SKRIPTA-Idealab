@@ -1,6 +1,7 @@
 // Produženje trenutnog termina iz portala. Dozvoljeno samo gostu kojeg je osoblje označilo kao stigao,
 // samo za današnji termin, samo ako je sljedeći sat slobodan i unutar radnog vremena.
 import { json, clean, esc } from '../../_lib/util.js';
+import { tr, langOf, cofficePage } from '../../_lib/i18n.js';
 import { guardPost, readJson, getUser, audit, rateLimit } from '../../_lib/auth.js';
 import { NAMES, PRICES, fmt, sarajevoNow, loadDay, loadSchedule, hoursOf, tableFor, total, kmNum, BUFFER_MIN, zoneLabel } from '../../_lib/rules.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../../_lib/graph.js';
@@ -11,6 +12,7 @@ export async function onRequestPost({ request, env }) {
   const user = await getUser(env, request); if (!user) return json({ ok: false, error: 'Prijavi se.' }, 401);
   if (!(await rateLimit(env, 'produzi:' + user.id, 20, 3600))) return json({ ok: false, error: 'Previše pokušaja.' }, 429);
   const body = await readJson(request); if (!body) return json({ ok: false, error: 'Neispravan zahtjev.' }, 400);
+  const lang = body.lang === 'en' ? 'en' : 'bs';
   const add = Number(body.sati || 1);
   if (![1, 2].includes(add)) return json({ ok: false, error: 'Možeš produžiti za 1 ili 2 sata.' }, 400);
 
@@ -49,7 +51,7 @@ export async function onRequestPost({ request, env }) {
   const rows = [['Zona', zoneLabel(b)], ['Novi kraj', nowEnd], ['Dodatno', pay]];
   try {
     await sendMail(env, { to: env.MAILBOX, subject: `Gost produžio: ${NAMES[b.zone]}, do ${nowEnd}`, html: mail({ brand: 'SKRIPTA Coffice · interno', chip: 'Produženo', tone: 'info', title: 'Gost je produžio termin.', rows: [['Ime', b.name], ...rows, ['Ukupno', `${kmNum(nb.total)} KM`]] }) });
-    await sendMail(env, { to: user.email, subject: 'Termin produžen: SKRIPTA Coffice', html: mail({ chip: 'Produženo', tone: 'ok', accent: C.teal, title: `Ostaješ do ${nowEnd}.`, rows }) });
+    await sendMail(env, { to: user.email, subject: tr(lang, 'Termin produžen: SKRIPTA Coffice'), html: mail({ lang: lang, chip: 'Produženo', tone: 'ok', accent: C.teal, title: `Ostaješ do ${nowEnd}.`, rows }) });
   } catch (e) { console.error(e); }
   return json({ ok: true, do: nowEnd, dodatno: extra });
 }

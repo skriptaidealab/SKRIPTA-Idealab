@@ -1,4 +1,5 @@
 import { fmt, zoneLabel } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { esc } from '../_lib/util.js';
 import { sendMail, deleteEvent } from '../_lib/graph.js';
 import { mail, C } from '../_lib/mail.js';
@@ -22,7 +23,7 @@ export async function onRequestPost({ request, env }) {
   }
   if (b.email) {
     try {
-      await sendMail(env, { to: b.email, subject: 'Otkazana rezervacija: SKRIPTA Coffice', html: mail({ chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
+      await sendMail(env, { to: b.email, subject: tr(langOf(b), 'Otkazana rezervacija: SKRIPTA Coffice'), html: mail({ lang: langOf(b), chip: 'Otkazano', tone: 'no', accent: C.rose, title: 'Moramo otkazati tvoju rezervaciju.', lead: `Žao nam je, ${esc(b.name)}. Nažalost moramo otkazati tvoju rezervaciju. Ispričavamo se zbog neugodnosti.`, rows: [['Zona', zoneLabel(b)], ['Termin', whenOf(b)]], buttons: [{ href: `${env.SITE_URL}/${cofficePage(langOf(b))}#rezervacija`, label: 'Odaberi novi termin' }], note: 'Ako imaš pitanja, odgovori na ovaj email ili nam piši na info@skripta.ba.' }) });
     } catch (e) { console.error(e); mailed = String(e.message || e); }
   } else mailed = 'gost nema e-mail';
   return json({ ok: true, calendar, mail: mailed });

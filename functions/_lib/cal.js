@@ -1,5 +1,6 @@
 // "Add to calendar" helpers for confirmation mails: a Google Calendar link and an .ics file (Apple, Outlook, others).
 import { NAMES, fmt, zoneLabel } from './rules.js';
+import { tr, langOf } from './i18n.js';
 
 const PLACE = 'SKRIPTA IdeaLab, Emerika Bluma 9, Sarajevo';
 const TZ = 'Europe/Sarajevo';
@@ -17,8 +18,8 @@ function utcStamp(date, min) {
   utc = wall - offsetMs(utc);
   return new Date(utc).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
-const title = (b) => `SKRIPTA Coffice: ${NAMES[b.zone]}`;
-const details = (b) => `${zoneLabel(b)}, ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}. Kafa ili čaj su besplatni. Pitanja: info@skripta.ba`;
+const title = (b) => `SKRIPTA Coffice: ${langOf(b) === 'en' ? NAMES[b.zone].replace(' zona', ' zone') : NAMES[b.zone]}`;
+const details = (b) => tr(langOf(b), `${zoneLabel(b)}, ${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}. Kafa ili čaj su besplatni. Pitanja: info@skripta.ba`);
 
 export function googleUrl(b) {
   const q = new URLSearchParams({ action: 'TEMPLATE', text: title(b), dates: `${local(b.date, b.start_min)}/${local(b.date, b.start_min + b.dur_h * 60)}`, ctz: TZ, details: details(b), location: PLACE });
@@ -30,7 +31,7 @@ export function icsFile(b, cancelUrl) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SKRIPTA//Coffice//BS', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
     `UID:${b.id}@skripta.ba`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
     `DTSTART:${utcStamp(b.date, b.start_min)}`, `DTEND:${utcStamp(b.date, b.start_min + b.dur_h * 60)}`,
-    `SUMMARY:${ics(title(b))}`, `LOCATION:${ics(PLACE)}`, `DESCRIPTION:${ics(details(b) + (cancelUrl ? '\nOtkaži: ' + cancelUrl : ''))}`,
-    'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', 'DESCRIPTION:SKRIPTA Coffice za 1 sat', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
+    `SUMMARY:${ics(title(b))}`, `LOCATION:${ics(PLACE)}`, `DESCRIPTION:${ics(details(b) + (cancelUrl ? (langOf(b) === 'en' ? '\nCancel: ' : '\nOtkaži: ') + cancelUrl : ''))}`,
+    'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', 'DESCRIPTION:' + tr(langOf(b), 'SKRIPTA Coffice za 1 sat'), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return lines.join('\r\n') + '\r\n';
 }

@@ -1,6 +1,7 @@
 // Shared HTML e-mail layout in the SKRIPTA look: white page, big black type, flat colour blocks.
 // Table based with inline styles so it renders the same in Outlook, Gmail and Apple Mail.
 import { esc } from './util.js';
+import { tr } from './i18n.js';
 
 export const C = { ink: '#1A1A1A', grey: '#414141', soft: '#F4F3EF', line: '#DDDBD3', teal: '#5A837B', mustard: '#DCA402', rose: '#A95457', purple: '#5B4E93' };
 const FONT = "Helvetica Neue,Helvetica,Arial,sans-serif";
@@ -14,10 +15,11 @@ function button(b) {
 }
 
 // title, lead and note are HTML (escape dynamic parts with esc). rows: [[label, value], ...] values are escaped here.
-export function mail({ brand = 'SKRIPTA Coffice', accent = C.mustard, chip, tone = 'info', title, lead = '', rows = [], buttons = [], note = '' }) {
+export function mail({ brand = 'SKRIPTA Coffice', accent = C.mustard, chip, tone = 'info', title, lead = '', rows = [], buttons = [], note = '', lang = 'bs' }) {
+  if (lang === 'en') { const t = (x) => tr('en', x); chip = t(chip); title = t(title); lead = t(lead); note = t(note); rows = rows.map((r) => (r ? [t(r[0]), t(r[1])] : r)); buttons = buttons.map((b) => ({ ...b, label: t(b.label) })); }
   const rowHtml = rows.filter((r) => r && r[1] !== '' && r[1] != null).map(([l, v], i, a) =>
     `<tr><td style="padding:12px 0;${i < a.length - 1 ? `border-bottom:1px solid ${C.line};` : ''}width:120px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${C.grey};vertical-align:top">${esc(l)}</td><td style="padding:12px 0;${i < a.length - 1 ? `border-bottom:1px solid ${C.line};` : ''}font-family:${FONT};font-size:16px;font-weight:700;color:${C.ink};vertical-align:top">${esc(v)}</td></tr>`).join('');
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff"><tr><td align="center" style="padding:0"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px">
+  return `<!doctype html><html lang="${lang === 'en' ? 'en' : 'bs'}"><body style="margin:0;padding:0;background:#ffffff"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff"><tr><td align="center" style="padding:0"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px">
 <tr><td style="background:${accent};height:14px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="padding:28px 28px 0"><span style="font-family:${FONT};font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${C.ink}">${esc(brand)}</span>${chip ? `<span style="display:inline-block;margin-left:12px;padding:5px 10px;${chipStyle[tone] || chipStyle.info};font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">${esc(chip)}</span>` : ''}</td></tr>
 <tr><td style="padding:22px 28px 0;font-family:${FONT};font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-1.5px;color:${C.ink}">${title}</td></tr>

@@ -1,6 +1,7 @@
 // Sends the thank-you e-mail when the slot ends, or as soon as the guest is marked as left (left_at). Only guests who scanned the QR code at check-in get one.
 // Called every 5 minutes by the Cloudflare Worker in workers/kraj-cron. Protected by CRON_SECRET.
 import { NAMES, fmt, sarajevoNow, dayNum, zoneLabel } from '../_lib/rules.js';
+import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { esc, isEmail, niceName } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { sendMail } from '../_lib/graph.js';
@@ -11,7 +12,7 @@ const LATE = 90; // minutes after the end of the slot until a thank-you is still
 async function send(env, b, test = false) {
   const first = esc(niceName(b.name).split(' ')[0]);
   const when = `${fmt(b.start_min)} do ${fmt(b.start_min + b.dur_h * 60)}`;
-  await sendMail(env, { to: b.email, subject: `${test ? '[TEST] ' : ''}Hvala na posjeti, SKRIPTA Coffice`, html: mail({ chip: 'Hvala', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti!', lead: `Hvala ti, ${first}. Nadamo se da ti je u COFFICE-u bilo ugodno.`, rows: [['Zona', zoneLabel(b)], ['Termin', when]], buttons: [{ href: `${env.SITE_URL}/coffice.html#rezervacija`, label: 'Rezerviši ponovo' }], note: 'Vidimo se opet!' }) });
+  await sendMail(env, { to: b.email, subject: tr(langOf(b), `${test ? '[TEST] ' : ''}Hvala na posjeti, SKRIPTA Coffice`), html: mail({ lang: langOf(b), chip: 'Hvala', tone: 'ok', accent: C.teal, title: 'Hvala na posjeti!', lead: `Hvala ti, ${first}. Nadamo se da ti je u COFFICE-u bilo ugodno.`, rows: [['Zona', zoneLabel(b)], ['Termin', when]], buttons: [{ href: `${env.SITE_URL}/${cofficePage(langOf(b))}#rezervacija`, label: 'Rezerviši ponovo' }], note: 'Vidimo se opet!' }) });
 }
 
 export async function onRequestPost({ request, env }) {
