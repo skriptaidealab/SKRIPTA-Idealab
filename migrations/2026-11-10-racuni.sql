@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- Rezervacije i FLEXI paketi dobijaju vezu na račun.
 ALTER TABLE bookings ADD COLUMN user_id TEXT;
 ALTER TABLE bookings ADD COLUMN flexi_paket_id INTEGER;
+ALTER TABLE bookings ADD COLUMN lang TEXT;
 CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_id, date);
 
 -- Tabele FLEXI paketa prave se inače same u nadzornoj ploči; ovdje ih osiguravamo prije ALTER-a.
