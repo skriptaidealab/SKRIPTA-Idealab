@@ -250,8 +250,8 @@
     if (!core) return s;
     var r = lookup(core);
     if (r == null && core.indexOf(' · ') > 0) { r = core.split(' · ').map(T).join(' · '); }
-    if (r == null && /[^\d][.!?]\s+\S/.test(core)) {
-      var parts = core.split(/(?<=[^\d][.!?])\s+/);
+    if (r == null && /[.!?]\s+[A-ZČĆŠŽĐ]/.test(core)) {
+      var parts = core.split(/(?<=[.!?])\s+(?=[A-ZČĆŠŽĐ])/);
       if (parts.length > 1) r = parts.map(T).join(' ');
     }
     if (r == null && core.indexOf(', ') > 0) { var segs = core.split(', '); var out = segs.map(T); if (out.join('') !== segs.join('')) r = out.join(', '); }

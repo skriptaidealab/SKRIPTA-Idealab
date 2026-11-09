@@ -1543,8 +1543,11 @@ body.is-openday .poster .hero-price { display: none; }
 /* Račun: isti jezik kao ostatak sajta (bijelo, crne linije 1.5px, ravni krugovi i pravougaonici, bez sjena) */
 .rc-page { position: relative; overflow: hidden; padding: 56px 0 96px; background: var(--paper); min-height: 70vh; }
 .rc-page::before { content: ''; position: absolute; right: -140px; top: -150px; width: 420px; aspect-ratio: 1; border-radius: 50%; background: var(--indigo); mix-blend-mode: multiply; opacity: 0.62; pointer-events: none; }
-.rc-page::after { content: ''; position: absolute; right: 120px; top: 150px; width: 150px; height: 64px; background: var(--mustard); mix-blend-mode: multiply; opacity: 0.8; pointer-events: none; }
+.rc-page::after { content: ''; position: absolute; right: 80px; top: 290px; width: 150px; height: 64px; background: var(--mustard); mix-blend-mode: multiply; opacity: 0.8; pointer-events: none; }
 .rc-page .container { position: relative; z-index: 1; }
+.rc-page .rc-sec { padding: 0; border: 0; background: none; }
+.rc-head .btn { background: #fff; }
+@media (max-width: 1180px) { .rc-page::after { display: none; } }
 .rc-page h1 { font-size: clamp(2.6rem, 8vw, 4.6rem); line-height: 0.95; letter-spacing: -0.045em; margin: 14px 0 14px; font-weight: 800; }
 .rc-page .eyebrow { margin-bottom: 0; }
 .rc-intro { font-size: 1.1rem; max-width: 46ch; margin: 0 0 32px; }
@@ -1573,7 +1576,8 @@ body.is-openday .poster .hero-price { display: none; }
 .rc-form .btn { width: 100%; justify-content: center; box-sizing: border-box; }
 .rc-form input[type="email"], .rc-form input[type="text"], .rc-form input[type="tel"], .rc-del input[type="email"] { width: 100%; padding: 14px; border: 1.5px solid var(--ink); border-radius: 0; font: inherit; background: #fff; box-sizing: border-box; }
 .rc-form input:focus-visible, .rc-del input:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
-.rc-form .lab { display: block; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
+.rc-form .lab { display: block; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800; margin-bottom: -6px; }
+.rc-booking > .rc-actions:empty { display: none; }
 .rc-code { letter-spacing: 0.5em; font-size: 1.9rem; text-align: center; font-weight: 800; padding-left: 0.5em !important; }
 .rc-link { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-weight: 600; }
 .rc-msg { margin: 10px 0 0; padding: 10px 12px; border-left: 4px solid #a02020; background: #fbeeee; color: #7a1818; font-size: 0.92rem; }
