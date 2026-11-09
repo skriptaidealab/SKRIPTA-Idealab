@@ -162,6 +162,22 @@ if (!skipExt) {
   const wins = [r1, r2].filter((x) => x.j.ok).length;
   const nb = await db.prepare('SELECT dur_h, total FROM bookings WHERE id = ?').bind('trenutna-ana').first();
   ok(wins === 1 && nb.dur_h === 2 && nb.total === 14, 'istovremena dva produženja: prolazi samo jedno (dur 2, total 14), dobijeno ' + JSON.stringify(nb) + ' pobjeda ' + wins);
+  const opcije = await import('../functions/api/racun/produzi-opcije.js');
+  {
+    const fit = (h) => startMin + 120 + h * 60 <= 1440;
+    const o1 = await call(opcije, '/api/racun/produzi-opcije', { body: { id: 'trenutna-ana' }, cookie: ckA });
+    ok(o1.j.ok && o1.j.opcije.map((o) => o.sati).join() === '1,2,4,6' && o1.j.opcije.every((o) => o.ok === fit(o.sati)) && o1.j.opcije[1].cijena === 12, 'opcije produženja: 1, 2, 4, 6 sati s cijenom, slobodne samo one koje stanu u radno vrijeme: ' + JSON.stringify(o1.j));
+    for (let i = 0; i < 15; i++) await mk('blok-' + i, 'blok' + i + '@example.com', { date: now.date, start_min: startMin + 120, dur_h: 6, total: 7 });
+    const o2 = await call(opcije, '/api/racun/produzi-opcije', { body: { id: 'trenutna-ana' }, cookie: ckA });
+    ok(o2.j.ok && o2.j.opcije.every((o) => !o.ok), 'kad je sljedeći termin pun, nijedna opcija nije slobodna');
+    await db.prepare("DELETE FROM bookings WHERE id LIKE 'blok-%'").run();
+    ok((await call(opcije, '/api/racun/produzi-opcije', { body: { id: 'trenutna-ana' }, cookie: ckB })).r.status === 404, 'opcije za tuđu rezervaciju: 404');
+    const h = [4, 2, 1].find(fit);
+    const e4 = await call(produzi, '/api/racun/produzi', { body: { id: 'trenutna-ana', sati: h, kraj: fmtT(startMin + 120) }, cookie: ckA });
+    const nb4 = await db.prepare('SELECT dur_h, total FROM bookings WHERE id = ?').bind('trenutna-ana').first();
+    ok(e4.j.ok && nb4.dur_h === 2 + h && nb4.total === 14 + ({ 1: 7, 2: 12, 4: 20 })[h], 'produženje za ' + h + ' h: dobijeno ' + JSON.stringify(nb4));
+    ok((await call(produzi, '/api/racun/produzi', { body: { id: 'trenutna-ana', sati: 6, kraj: fmtT(startMin + 120 + h * 60) }, cookie: ckA })).r.status === 409 || fit(h + 6), 'produženje preko zatvaranja se odbija');
+  }
 }
 
 section('FLEXI prikaz');

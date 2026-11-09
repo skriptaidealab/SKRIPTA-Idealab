@@ -1607,7 +1607,18 @@ body.is-openday .poster .hero-price { display: none; }
 .rc-chip.flexi { background: var(--indigo); border-color: var(--indigo); color: #fff; }
 .rc-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .rc-actions .btn { padding: 11px 18px; }
-.rc-ask { font-weight: 700; }
+.rc-ask { font-weight: 700; margin: 0; }
+.rc-ext { flex-basis: 100%; display: grid; gap: 12px; padding: 16px; border: 1.5px solid var(--ink); background: var(--cream, #f7f5f1); }
+.rc-ext[hidden] { display: none; }
+.rc-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.rc-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 58px; padding: 8px; border: 1.5px solid var(--ink); background: #fff; font: inherit; cursor: pointer; line-height: 1.2; }
+.rc-opt b { font-size: 1rem; }
+.rc-opt small { font-size: 0.78rem; color: var(--ink-soft); }
+.rc-opt[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.rc-opt[aria-pressed="true"] small { color: #fff; }
+.rc-opt:disabled { background: #f0eeea; border-style: dashed; color: #8d8a84; cursor: not-allowed; text-decoration: line-through; }
+.rc-opt:disabled small { text-decoration: none; }
+.rc-opt:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
 .rc-flexi { border: 1.5px solid var(--ink); background: #fff; padding: 22px; margin-bottom: 14px; position: relative; }
 .rc-flexi h3 { margin: 0 0 4px; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800; }
 .rc-big { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin: 8px 0 12px; }

@@ -54,16 +54,45 @@
     function say(t, good) { msg.textContent = t || ''; msg.hidden = !t; msg.className = 'rc-msg' + (good ? ' ok' : ''); }
 
     if (b.mozeProduziti) {
-      var pr = b.produziCijena === 0 ? 'besplatno' : (b.produziCijena != null ? km(b.produziCijena) + ' KM' : '');
-      var ext = el('button', { type: 'button', class: 'btn btn-solid', text: 'Produži za 1 sat' + (pr ? ' (' + pr + ')' : '') });
+      var ext = el('button', { type: 'button', class: 'btn btn-solid', text: 'Produži termin' });
+      var panel = el('div', { class: 'rc-ext', hidden: '' });
       ext.addEventListener('click', function () {
-        ext.disabled = true; say('');
-        A.api('/api/racun/produzi', { id: b.id, sati: 1, kraj: b.do }).then(function (j) {
-          if (j.ok) { say('Ostaješ do ' + j.do + '.', true); setTimeout(render, 1200); } else { ext.disabled = false; say(j.error || 'Produženje nije uspjelo.'); }
+        if (!panel.hidden) { panel.hidden = true; return; }
+        panel.hidden = false; panel.textContent = ''; say('');
+        panel.appendChild(el('p', { class: 'rc-fine', text: 'Provjeravam dostupnost...' }));
+        A.api('/api/racun/produzi-opcije', { id: b.id }).then(function (j) {
+          panel.textContent = '';
+          if (!j.ok) { panel.hidden = true; return say(j.error || 'Provjera nije uspjela. Pokušaj opet.'); }
+          panel.appendChild(el('p', { class: 'rc-ask', text: 'Za koliko želiš produžiti?' }));
+          var picked = null, row = el('div', { class: 'rc-opts' });
+          var go = el('button', { type: 'button', class: 'btn btn-solid', text: 'Potvrdi produženje', disabled: '' });
+          j.opcije.forEach(function (o) {
+            var label = o.sati + (o.sati === 1 ? ' sat' : (o.sati < 5 ? ' sata' : ' sati'));
+            var price = o.cijena === 0 ? 'besplatno' : km(o.cijena) + ' KM';
+            var btn = el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': 'false', disabled: o.ok ? false : '', title: o.ok ? false : o.razlog },
+              el('b', { text: label }), el('small', { text: o.ok ? price : 'Nije slobodno' }));
+            btn.addEventListener('click', function () {
+              picked = o; say('');
+              Array.prototype.forEach.call(row.children, function (c) { c.setAttribute('aria-pressed', c === btn ? 'true' : 'false'); });
+              go.disabled = false; go.textContent = 'Potvrdi: do ' + o.do;
+            });
+            row.appendChild(btn);
+          });
+          panel.appendChild(row);
+          if (j.opcije.some(function (o) { return !o.ok; })) panel.appendChild(el('p', { class: 'rc-fine', text: 'Opcije koje nisu slobodne su zauzete drugim terminom ili prelaze radno vrijeme.' }));
+          go.addEventListener('click', function () {
+            if (!picked) return;
+            go.disabled = true; say('');
+            A.api('/api/racun/produzi', { id: b.id, sati: picked.sati, kraj: j.kraj }).then(function (r) {
+              if (r.ok) { say('Ostaješ do ' + r.do + '.', true); setTimeout(render, 1200); } else { go.disabled = false; say(r.error || 'Produženje nije uspjelo.'); }
+            });
+          });
+          panel.appendChild(go);
+          panel.appendChild(el('p', { class: 'rc-fine', text: 'Produženje se plaća po dolasku, kao i ostalo.' }));
         });
       });
       actions.appendChild(ext);
-      actions.appendChild(el('p', { class: 'rc-fine', text: 'Produženje se plaća po dolasku, kao i ostalo.' }));
+      actions.appendChild(panel);
     }
     if (b.mozeOtkazati) {
       var cancel = el('button', { type: 'button', class: 'btn btn-outline', text: 'Otkaži' });

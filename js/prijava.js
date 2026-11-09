@@ -111,7 +111,7 @@
         api('/api/racun/kod-posalji', { pending: opts.pending }).then(function (j) { if (!j.ok) { stepStart([]); say(j.error || 'Prijava je istekla. Pokušaj ponovo.'); } else stepKod(); });
         return;
       }
-      api('/api/racun/pruzaoci').then(function (j) { stepStart(j.ok ? j.pruzaoci : []); });
+      stepStart([]); // samo kod s emaila: nema Google/Microsoft/Apple prijave
     }
     boot();
   }

@@ -6,6 +6,7 @@ import { guardPost, readJson, getUser, audit, rateLimit } from '../../_lib/auth.
 import { NAMES, PRICES, fmt, sarajevoNow, loadDay, loadSchedule, hoursOf, tableFor, total, kmNum, BUFFER_MIN, zoneLabel } from '../../_lib/rules.js';
 import { listBlocks, sendMail, createEvent, deleteEvent } from '../../_lib/graph.js';
 import { mail, C } from '../../_lib/mail.js';
+import { OPCIJE, ocijeni } from '../../_lib/produzenje.js';
 
 export async function onRequestPost({ request, env }) {
   const bad = guardPost(request); if (bad) return bad;
@@ -14,7 +15,7 @@ export async function onRequestPost({ request, env }) {
   const body = await readJson(request); if (!body) return json({ ok: false, error: 'Neispravan zahtjev.' }, 400);
   const lang = body.lang === 'en' ? 'en' : 'bs';
   const add = Number(body.sati || 1);
-  if (![1, 2].includes(add)) return json({ ok: false, error: 'Možeš produžiti za 1 ili 2 sata.' }, 400);
+  if (!OPCIJE.includes(add)) return json({ ok: false, error: 'Možeš produžiti za 1, 2, 4 ili 6 sati.' }, 400);
 
   const b = await env.DB.prepare('SELECT * FROM bookings WHERE id = ? AND user_id = ?').bind(clean(body.id, 60), user.id).first();
   if (!b || b.status !== 'confirmed') return json({ ok: false, error: 'Rezervacija nije pronađena.' }, 404);
@@ -25,15 +26,12 @@ export async function onRequestPost({ request, env }) {
   if (b.date !== now.date || oldEnd <= now.min) return json({ ok: false, error: 'Moguće je produžiti samo termin koji je u toku.' }, 400);
   if (!PRICES[b.zone] || PRICES[b.zone][add] === undefined) return json({ ok: false, error: 'Produženje za ovu zonu nije moguće.' }, 400);
 
-  const sch = await loadSchedule(env), hrs = hoursOf(sch, b.date);
-  if (!hrs || newEnd > hrs[1]) return json({ ok: false, error: `Prostor se zatvara u ${fmt(hrs ? hrs[1] : 0)}.` }, 409);
+  const sch = await loadSchedule(env);
   let day;
   try { day = await loadDay(env, b.date, listBlocks); } catch (e) { console.error(e); return json({ ok: false, error: 'Termini trenutno nisu dostupni. Javi se osoblju.' }, 503); }
-  const others = day.bookings.filter((x) => x.id !== b.id);
-  if (tableFor({ zone: b.zone, dur: add, persons: b.persons }, oldEnd, others) < 0) return json({ ok: false, conflict: true, error: 'Nema slobodnih mjesta u sljedećem terminu. Javi se osoblju.' }, 409);
-  if (day.blocks.some((x) => oldEnd < x.end_min + BUFFER_MIN && newEnd > x.start_min - BUFFER_MIN)) return json({ ok: false, conflict: true, error: 'Sljedeći termin je zauzet (događaj ili najam).' }, 409);
-
-  const extra = total(b.zone, add, b.persons, b.date, 0, oldEnd, sch);
+  const o = ocijeni(b, add, sch, day);
+  if (!o.ok) return json({ ok: false, ...(o.conflict ? { conflict: true } : {}), error: o.error }, o.status);
+  const extra = o.extra;
   // Uvjet na staro trajanje: dva istovremena zahtjeva ne mogu oba proći.
   const r = await env.DB.prepare("UPDATE bookings SET dur_h = dur_h + ?, total = total + ?, end_reminded = 0 WHERE id = ? AND user_id = ? AND status = 'confirmed' AND dur_h = ?").bind(add, extra, b.id, user.id, b.dur_h).run();
   if (!r.meta || !r.meta.changes) return json({ ok: false, error: 'Termin je u međuvremenu promijenjen. Osvježi stranicu.' }, 409);
