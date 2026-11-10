@@ -153,10 +153,3 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-/* Open day (4.-6.11.2026): show the banner until the last day ends, then fall back to the normal hero. */
-document.addEventListener('DOMContentLoaded', function () {
-  try {
-    var today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo' }).format(new Date());
-    if (today <= '2026-11-06') document.body.classList.add('is-openday');
-  } catch (e) {}
-});

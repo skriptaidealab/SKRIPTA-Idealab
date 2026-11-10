@@ -174,7 +174,7 @@
   if (el.minus) el.minus.addEventListener('click', function () { setPersons(persons() - 1); });
   if (el.plus) el.plus.addEventListener('click', function () { setPersons(persons() + 1); });
 
-  var FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
+  var FREE_DATES = []; /* dani kad je rezervacija besplatna (trenutno nema) */
   function isFree() {
     var v = el.date.value, x = dayInfo(v);
     return x ? !!x.free : (!state.sched && FREE_DATES.indexOf(v) >= 0);

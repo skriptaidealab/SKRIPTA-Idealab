@@ -3,17 +3,13 @@
 // hours_dates, discounts, settings). The constants below are the fallback when those tables are missing or empty.
 export const OPEN = 9 * 60, CLOSE = 18 * 60 + 30, STEP = 30; // Mon-Fri 09:00 to 18:30
 // Dates with shortened opening hours (minutes from midnight): [open, close].
-export const SPECIAL_HOURS = {
-  '2026-11-04': [10 * 60, 21 * 60],
-  '2026-11-05': [10 * 60, 18 * 60 + 30], // closed after 18:30 (new bookings only)
-  '2026-11-06': [10 * 60, 18 * 60 + 30]
-};
+export const SPECIAL_HOURS = {};
 // Dates when booking is free of charge (opening days).
-export const FREE_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07'];
+export const FREE_DATES = [];
 export const isFree = (date) => FREE_DATES.includes(date);
 // Frozen windows: no NEW bookings can touch these (minutes from midnight). Existing confirmed bookings stay;
 // pending requests can still be confirmed. Remove an entry to reopen the window.
-export const FROZEN = { '2026-11-04': [[11 * 60, 14 * 60]] };
+export const FROZEN = {};
 // Saturdays after this date are closed for now (booking.js has the same constant). Remove to reopen.
 export const SAT_CLOSED_AFTER = '2026-11-08';
 // Saturdays: bookings may only fall between 10:00 and 15:00. Existing confirmed bookings outside this window stay valid.
