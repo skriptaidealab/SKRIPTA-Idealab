@@ -1,5 +1,7 @@
 /* Stranica "Moj račun": rezervacije (prošle i buduće), produženje, FLEXI, profil, privatnost. */
 (function () {
+  // trajanje u satima i minutama (3 h 47 min), ne decimalno
+  function hm(h) { var m = Math.round((+h || 0) * 60), a = Math.floor(m / 60), b = m % 60; return m < 60 ? m + ' min' : (b ? a + ' h ' + b + ' min' : a + ' h'); }
   var root = document.getElementById('racun-app');
   if (!root || !window.SkriptaAuth) return;
   var A = window.SkriptaAuth, el = A.el;
@@ -48,7 +50,7 @@
       el('div', { class: 'rc-date', 'aria-hidden': 'true' }, el('span', { class: 'd', text: String(+dp[2]) }), el('span', { class: 'm', text: MON[+dp[1] - 1] })),
       el('div', { class: 'rc-b-main' },
         el('h3', { text: dmy(b.datum) + ', ' + b.od + ' do ' + b.do }),
-        el('p', { text: b.zonaNaziv + (b.osoba > 1 ? ', ' + b.osoba + ' osobe' : '') + ' · ' + b.trajanje + ' h · ' + price }),
+        el('p', { text: b.zonaNaziv + (b.osoba > 1 ? ', ' + b.osoba + ' osobe' : '') + ' · ' + hm(b.trajanje) + ' · ' + price }),
         chips),
       actions, msg);
     function say(t, good) { msg.textContent = t || ''; msg.hidden = !t; msg.className = 'rc-msg' + (good ? ' ok' : ''); }
