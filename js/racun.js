@@ -111,6 +111,76 @@
       actions.appendChild(ext);
       actions.appendChild(panel);
     }
+    if (b.mozeIzmijeniti) {
+      var edit = el('button', { type: 'button', class: 'btn btn-outline', text: 'Izmijeni' });
+      var epanel = el('div', { class: 'rc-ext rc-edit', hidden: '' });
+      var ZN2 = { ind: 'Focus zona', lounge: 'Lounge zona' };
+      var DUR = { ind: [1, 2, 4, 6], lounge: [1, 2, 4] };
+      var st = { zona: b.zona, trajanje: b.trajanje, osobe: b.osoba, datum: b.datum, pocetak: null };
+      function satiTxt(n) { return n + (n === 1 ? ' sat' : (n < 5 ? ' sata' : ' sati')); }
+      function drawEdit() {
+        epanel.textContent = ''; say('');
+        if (!b.flexi) {
+          var zrow = el('div', { class: 'rc-opts rc-zones' });
+          ['ind', 'lounge'].forEach(function (z) {
+            zrow.appendChild(el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': String(z === st.zona), onclick: function () { st.zona = z; if (DUR[z].indexOf(st.trajanje) < 0) st.trajanje = DUR[z][DUR[z].length - 1]; st.pocetak = null; drawEdit(); } }, el('b', { text: ZN2[z] })));
+          });
+          epanel.appendChild(el('p', { class: 'rc-ask', text: 'Zona' })); epanel.appendChild(zrow);
+          var drow = el('div', { class: 'rc-opts' });
+          DUR[st.zona].forEach(function (h) {
+            drow.appendChild(el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': String(h === st.trajanje), onclick: function () { st.trajanje = h; st.pocetak = null; drawEdit(); } }, el('b', { text: satiTxt(h) })));
+          });
+          epanel.appendChild(el('p', { class: 'rc-ask', text: 'Trajanje' })); epanel.appendChild(drow);
+          var prow = el('div', { class: 'rc-opts' });
+          [1, 2, 3, 4].forEach(function (n) {
+            prow.appendChild(el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': String(n === st.osobe), onclick: function () { st.osobe = n; st.pocetak = null; drawEdit(); } }, el('b', { text: String(n) })));
+          });
+          epanel.appendChild(el('p', { class: 'rc-ask', text: 'Broj osoba' })); epanel.appendChild(prow);
+        } else {
+          epanel.appendChild(el('p', { class: 'rc-fine', text: 'FLEXI rezervaciji se mijenja samo datum i vrijeme početka.' }));
+        }
+        var today = new Date(), mm = String(today.getMonth() + 1).padStart(2, '0'), dd = String(today.getDate()).padStart(2, '0');
+        var din = el('input', { type: 'date', id: 'rc-edit-d-' + b.id, value: st.datum, min: today.getFullYear() + '-' + mm + '-' + dd });
+        din.addEventListener('change', function () { if (din.value) { st.datum = din.value; st.pocetak = null; drawEdit(); } });
+        epanel.appendChild(el('p', { class: 'rc-ask', text: 'Datum' })); epanel.appendChild(din);
+        var body = el('div', { class: 'rc-ext-body' }, el('p', { class: 'rc-fine', text: 'Provjeravam dostupnost...' }));
+        epanel.appendChild(body);
+        A.api('/api/racun/izmijeni-opcije', { id: b.id, zona: st.zona, trajanje: st.trajanje, osobe: st.osobe, datum: st.datum }).then(function (j) {
+          body.textContent = '';
+          if (!j.ok) { body.appendChild(el('p', { class: 'rc-fine', text: j.error || 'Provjera nije uspjela. Pokušaj opet.' })); return; }
+          body.appendChild(el('p', { class: 'rc-ask', text: 'Slobodni počeci' }));
+          if (!j.starts.length) { body.appendChild(el('p', { class: 'rc-fine', text: 'Za ovaj izbor nema slobodnih termina. Probaj drugi datum ili kraće trajanje.' })); return; }
+          var row = el('div', { class: 'rc-opts' }), go = el('button', { type: 'button', class: 'btn btn-solid', text: 'Spremi izmjenu', disabled: '' });
+          j.starts.forEach(function (o) {
+            var btn = el('button', { type: 'button', class: 'rc-opt', 'aria-pressed': String(st.pocetak === o.od) },
+              el('b', { text: o.oznaka }), el('small', { text: 'do ' + o.do + ' · ' + (b.flexi ? 'FLEXI' : (o.cijena === 0 ? 'besplatno' : km(o.cijena) + ' KM')) }));
+            btn.addEventListener('click', function () {
+              st.pocetak = o.od; say('');
+              Array.prototype.forEach.call(row.children, function (c) { c.setAttribute('aria-pressed', c === btn ? 'true' : 'false'); });
+              go.disabled = false; go.textContent = 'Spremi: ' + dmy(st.datum) + ', ' + o.oznaka + ' do ' + o.do;
+            });
+            row.appendChild(btn);
+          });
+          body.appendChild(row);
+          go.addEventListener('click', function () {
+            if (st.pocetak == null) return;
+            go.disabled = true; say('');
+            A.api('/api/racun/izmijeni', { id: b.id, zona: st.zona, trajanje: st.trajanje, osobe: st.osobe, datum: st.datum, pocetak: st.pocetak }).then(function (r) {
+              if (r.ok) { say('Izmjena je spremljena: ' + dmy(r.datum) + ', ' + r.od + ' do ' + r.do + '.' + (r.potvrdjena ? '' : ' Čeka potvrdu.'), true); setTimeout(render, 1400); }
+              else { go.disabled = false; say(r.error || 'Izmjena nije uspjela.'); if (r.conflict) drawEdit(); }
+            });
+          });
+          body.appendChild(go);
+          body.appendChild(el('p', { class: 'rc-fine', text: 'Izmjena važi samo ako je izabrani termin slobodan. Cijena se računa za novi termin.' }));
+        });
+      }
+      edit.addEventListener('click', function () {
+        if (!epanel.hidden) { epanel.hidden = true; return; }
+        epanel.hidden = false; drawEdit();
+      });
+      actions.appendChild(edit);
+      actions.appendChild(epanel);
+    }
     if (b.mozeOtkazati) {
       var cancel = el('button', { type: 'button', class: 'btn btn-outline', text: 'Otkaži' });
       cancel.addEventListener('click', function () {

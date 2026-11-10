@@ -11,6 +11,7 @@ export function view(b, now, extra = {}) {
     id: b.id, zona: b.zone, zonaNaziv: NAMES[b.zone] || b.zone, osoba: b.persons, datum: b.date, od: fmt(b.start_min), do: fmt(end), trajanje: b.dur_h,
     iznos: b.total, status: b.status, faza, flexi: !!b.flexi_paket_id, placeno: !!b.paid_at, kreirano: b.created_at, dosao: !!b.checked_in_at,
     mozeOtkazati: active && !b.checked_in_at && !started,
+    mozeIzmijeniti: active && !b.checked_in_at && !started,
     mozeProduziti: b.status === 'confirmed' && !!b.checked_in_at && !b.left_at && !b.no_show && b.date === now.date && !ended,
     ...extra
   };

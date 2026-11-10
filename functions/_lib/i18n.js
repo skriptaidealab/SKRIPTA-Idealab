@@ -13,13 +13,14 @@ const EXACT = {
   'Otkazana rezervacija: SKRIPTA Coffice': 'Booking cancelled: SKRIPTA Coffice',
   'Tvoj zahtjev za rezervaciju': 'Your booking request',
   'Rezervacija izmijenjena: SKRIPTA Coffice': 'Booking changed: SKRIPTA Coffice',
+  'Zahtjev za rezervaciju izmijenjen': 'Booking request changed',
   'Termin produžen: SKRIPTA Coffice': 'Booking extended: SKRIPTA Coffice',
   'Nastavak u drugoj zoni: SKRIPTA Coffice': 'Continuing in another zone: SKRIPTA Coffice',
   // chips
   'Još nije potvrđeno': 'Not confirmed yet', 'Potvrđeno': 'Confirmed', 'Otkazano': 'Cancelled', 'Nije potvrđeno': 'Not confirmed',
   'Izmijenjeno': 'Changed', 'Hvala': 'Thanks', 'Podsjetnik': 'Reminder', 'Produženo': 'Extended', 'Prijava': 'Sign-in',
   // titles
-  'Zahtjev je primljen.': 'Request received.', 'Vidimo se.': 'See you soon.', 'Moramo otkazati tvoju rezervaciju.': 'We have to cancel your booking.',
+  'Zahtjev je primljen.': 'Request received.', 'Zahtjev je izmijenjen.': 'Request changed.', 'Tvoj zahtjev je izmijenjen. Termin je tvoj tek kad ti potvrdimo emailom.': 'Your request has been changed. The slot is yours only once we confirm by email.', 'Vidimo se.': 'See you soon.', 'Moramo otkazati tvoju rezervaciju.': 'We have to cancel your booking.',
   'Ne možemo potvrditi termin.': 'We cannot confirm this slot.', 'Termin je promijenjen.': 'Your booking has changed.',
   'Hvala na posjeti!': 'Thanks for visiting!', 'Vidimo se uskoro.': 'See you soon.',
   // leads and notes

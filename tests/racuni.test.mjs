@@ -378,5 +378,57 @@ section('Ime pri prvoj prijavi');
   ok(star.j.ok && star.j.trebaIme === false, 'poznat klijent: ime se ne traži, povuče se iz rezervacije');
 }
 
+section('Izmjena rezervacije iz računa');
+{
+  const opc = await import('../functions/api/racun/izmijeni-opcije.js'), izm = await import('../functions/api/racun/izmijeni.js');
+  const sch = await rules.loadSchedule(env);
+  let D = null; for (let i = 1; i <= 4 && !D; i++) { const d = rules.ymd(rules.dayNum(now.date) + i); if (rules.hoursOf(sch, d)) D = d; }
+  let D2 = null; for (let i = 1; i <= 4; i++) { const d = rules.ymd(rules.dayNum(now.date) + i); if (rules.hoursOf(sch, d) && d !== D) { D2 = d; break; } }
+  const EM = 'izmjena-gost@example.com';
+  await mk('izm-1', EM, { date: D, start_min: 600, dur_h: 2 });
+  await mk('izm-2', EM, { date: D, start_min: 840, dur_h: 1, status: 'pending' });
+  await mk('izm-tudja', 'drugi-gost@example.com', { date: D, start_min: 600, dur_h: 1 });
+  const ck = await login(EM, '7.7.7.1');
+  const vi = (await call(ja, '/api/racun/ja', { method: 'GET', cookie: ck })).j.bookings.find((x) => x.id === 'izm-1');
+  ok(vi && vi.mozeIzmijeniti === true, 'buduća rezervacija se može izmijeniti');
+  const o = await call(opc, '/api/racun/izmijeni-opcije', { body: { id: 'izm-1', zona: 'ind', trajanje: 2, osobe: 1, datum: D }, cookie: ck });
+  ok(o.j.ok && o.j.starts.some((x) => x.od === 600) && o.j.starts.length > 3, 'opcije: vlastiti termin se ne računa protiv sebe');
+  ok((await call(opc, '/api/racun/izmijeni-opcije', { body: { id: 'izm-tudja', datum: D }, cookie: ck })).r.status === 404, 'tuđa rezervacija: 404');
+  ok((await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-tudja', zona: 'ind', trajanje: 1, osobe: 1, datum: D, pocetak: 660 }, cookie: ck })).r.status === 404, 'izmjena tuđe rezervacije: 404');
+  ok((await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-1', zona: 'ind', trajanje: 2, osobe: 1, datum: D, pocetak: 600 }, cookie: ck })).r.status === 400, 'isti termin = nema promjene');
+  ok((await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-1', zona: 'ind', trajanje: 5, osobe: 1, datum: D, pocetak: 660 }, cookie: ck })).r.status === 400, 'nepoznato trajanje se odbija');
+  // blokada cijelog prostora: termin više nije slobodan
+  await db.prepare('INSERT INTO blocks (date, start_min, end_min, note) VALUES (?,?,?,?)').bind(D, 720, 780, 'test').run();
+  const bl = await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-1', zona: 'ind', trajanje: 1, osobe: 1, datum: D, pocetak: 720 }, cookie: ck });
+  ok(bl.r.status === 409 && bl.j.conflict === true, 'zauzet termin se ne može odabrati');
+  await db.prepare('DELETE FROM blocks WHERE note = ?').bind('test').run();
+  const m0 = sent.length;
+  const g = await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-1', zona: 'lounge', trajanje: 4, osobe: 2, datum: D, pocetak: 540 }, cookie: ck });
+  const nb = await db.prepare('SELECT * FROM bookings WHERE id = ?').bind('izm-1').first();
+  ok(g.j.ok && g.j.potvrdjena && nb.status === 'confirmed' && nb.zone === 'lounge' && nb.dur_h === 4 && nb.persons === 2 && nb.start_min === 540, 'potvrđena rezervacija: nova zona, trajanje, osobe i početak');
+  ok(nb.total === rules.total('lounge', 4, 2, D, 0, 540, sch), 'cijena je preračunata za novi termin');
+  ok(sent.length >= m0 + 2 && sent.some((x) => x.to && x.to[0] && x.to[0].email === EM && /izmijenjena|changed/i.test(x.subject)), 'gost i osoblje dobijaju mail o izmjeni');
+  const pg = await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-2', zona: 'lounge', trajanje: 1, osobe: 1, datum: D2 || D, pocetak: 900 }, cookie: ck });
+  const np = await db.prepare('SELECT * FROM bookings WHERE id = ?').bind('izm-2').first();
+  ok(pg.j.ok && pg.j.potvrdjena === false && np.status === 'pending', 'rezervacija na čekanju ostaje na čekanju');
+  await db.prepare("UPDATE bookings SET checked_in_at = ? WHERE id = ?").bind(new Date().toISOString(), 'izm-1').run();
+  ok((await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-1', zona: 'lounge', trajanje: 4, osobe: 2, datum: D, pocetak: 570 }, cookie: ck })).r.status === 400, 'nakon dolaska izmjena nije moguća');
+  // FLEXI: zona, trajanje i osobe su zaključani paketom
+  await db.prepare("INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone, user_id, flexi_paket_id) SELECT 'izm-fx', ?, 'confirmed', 'ind', 1, ?, 600, 4, 0, 'Ime Prezime', email, '+38762111222', id, 99 FROM users WHERE email = ?").bind(new Date().toISOString(), D2 || D, EM).run();
+  const fx = await call(izm, '/api/racun/izmijeni', { body: { id: 'izm-fx', zona: 'lounge', trajanje: 1, osobe: 3, datum: D2 || D, pocetak: 660 }, cookie: ck });
+  const nf = await db.prepare('SELECT * FROM bookings WHERE id = ?').bind('izm-fx').first();
+  ok(fx.j.ok ? (nf.zone === 'ind' && nf.dur_h === 4 && nf.persons === 1 && nf.total === 0 && nf.start_min === 660) : fx.r.status === 409, 'FLEXI: mijenja se samo datum i početak, cijena ostaje 0');
+  // engleski gost dobija engleske mailove i za izmjenu (potvrđena i na čekanju)
+  for (const [id, st] of [['izm-en1', 'confirmed'], ['izm-en2', 'pending']]) {
+    await mk(id, EM, { date: D, start_min: 900, dur_h: 1, status: st, user_id: (await db.prepare('SELECT id FROM users WHERE email = ?').bind(EM).first()).id });
+    await db.prepare("UPDATE bookings SET lang = 'en' WHERE id = ?").bind(id).run();
+    const mm = sent.length;
+    const rr = await call(izm, '/api/racun/izmijeni', { body: { id, zona: 'ind', trajanje: 1, osobe: 1, datum: D, pocetak: 960 }, cookie: ck });
+    const gm = sent.slice(mm).find((x) => x.to && x.to[0] && x.to[0].email === EM);
+    ok(rr.j.ok && gm && !BS_WORDS.test(gm.subject + ' ' + plain(gm.htmlContent)), 'izmjena (' + st + ') na engleskom: mail bez bosanskih riječi ' + (gm && gm.subject));
+  }
+  await db.prepare("DELETE FROM bookings WHERE id IN ('izm-1','izm-2','izm-tudja','izm-fx','izm-en1','izm-en2')").run();
+}
+
 console.log(`\nProlazi: ${pass}, padaju: ${fail}`);
 process.exit(fail ? 1 : 0);

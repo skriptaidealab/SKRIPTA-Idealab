@@ -1636,3 +1636,4 @@ footer .logo-word { color: #fff; }
   .rc-date { width: 60px; height: 60px; }
   .rc-date .d { font-size: 1.6rem; }
 }
+.rc-edit input[type="date"] { font: inherit; padding: 10px 12px; border: 1.5px solid var(--ink); background: #fff; max-width: 220px; }
