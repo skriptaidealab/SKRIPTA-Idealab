@@ -160,7 +160,7 @@
     'FLEXI paketi vrijede samo za Focus zonu.': 'FLEXI packages are valid for the Focus zone only.',
     'Unaprijed plaćene posjete uz popust. Nudimo ograničenu količinu paketa. Cijene su s PDV-om, a kafa ili čaj su besplatni. Za pakete se javi na': 'Prepaid visits at a discount. We offer a limited number of packages. Prices include VAT, and coffee or tea is free. For packages, get in touch at',
     'Posjete od 4 sata · Focus zona': 'Visits of 4 hours · Focus zone', 'Posjete od 6 sati · Focus zona': 'Visits of 6 hours · Focus zone',
-    'popust 10%': '10% off', 'popust 15%': '15% off', 'popust 20%': '20% off', 'Naruči paket': 'Order package',
+    '16 KM po posjeti': '16 KM per visit', '15 KM po posjeti': '15 KM per visit', '14 KM po posjeti': '14 KM per visit', '20 KM po posjeti': '20 KM per visit', '18 KM po posjeti': '18 KM per visit', 'Naruči paket': 'Order package',
     'KAKO FUNKCIONIŠE': 'HOW IT WORKS', 'Rezervacije u tri koraka': 'Booking in three steps', 'Odaberi zonu i termin': 'Choose a zone and a slot',
     'Odaberi svoje mjesto za rad i odluči koliko ćeš ostati.': 'Pick your place to work and decide how long you will stay.', 'Pošalji zahtjev': 'Send request',
     'Unos email adrese i potvrda putem emaila.': 'Enter your email address and confirm by email.', 'Dođi u zakazanom terminu': 'Come at your booked time',

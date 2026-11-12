@@ -47,9 +47,10 @@ const BACK = `<div class="a5 back"><div class="circ b"></div>
 <h2 class="f">FLEXI paketi</h2>
 <p class="sub">Vrijede samo za Focus zonu. Ograničena količina paketa.</p>
 <table class="pt"><tr><th>Broj dolazaka</th><th>5</th><th>10</th><th>15</th></tr>
-<tr><td>Posjete od 4 h</td><td>90 KM</td><td>170 KM</td><td>240 KM</td></tr>
-<tr><td>Posjete od 6 h</td><td>112,50 KM</td><td>212,50 KM</td><td>300 KM</td></tr>
-<tr class="pop"><td>Popust</td><td>10%</td><td>15%</td><td>20%</td></tr></table>
+<tr><td>Posjete od 4 h</td><td>80 KM</td><td>150 KM</td><td>210 KM</td></tr>
+<tr><td>Posjete od 6 h</td><td>100 KM</td><td>180 KM</td><td>240 KM</td></tr>
+<tr><td>Po posjeti, 4 h</td><td>16 KM</td><td>15 KM</td><td>14 KM</td></tr>
+<tr class="pop"><td>Po posjeti, 6 h</td><td>20 KM</td><td>18 KM</td><td>16 KM</td></tr></table>
 <p class="sub flex">Za FLEXI pakete piši nam na <b>info@skripta.ba</b></p>
 <div class="foot"><span>Sve cijene su u KM i uključuju PDV. Kafa ili čaj su uključeni.</span></div></div>`;
 
