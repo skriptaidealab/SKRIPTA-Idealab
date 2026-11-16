@@ -1,0 +1,2 @@
+-- Refer a friend: evidencija preporuka (pravi se i sam pri prvom korištenju, ovo je samo za svježu bazu).
+CREATE TABLE IF NOT EXISTS preporuke (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL, referrer_ime TEXT NOT NULL, referrer_email TEXT NOT NULL, friend_ime TEXT NOT NULL, friend_email TEXT NOT NULL, friend_telefon TEXT, napomena TEXT, referrer_used_at TEXT, referrer_booking_id TEXT, friend_used_at TEXT, friend_booking_id TEXT);

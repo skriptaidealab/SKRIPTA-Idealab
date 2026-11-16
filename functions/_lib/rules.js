@@ -73,7 +73,13 @@ export function promoPctOf(b) {
   const base = PRICES[b.zone]?.[b.dur_h] * b.persons;
   return base && b.total < base ? Math.round((1 - b.total / base) * 100) : 0;
 }
-export const promoLine = (b) => (b.promo ? `${b.promo}, ${promoPctOf(b)}% popusta` : '');
+export const promoLine = (b) => {
+  if (!b.promo) return '';
+  if (b.promo === 'PREPORUKA') return '30% popusta (preporuka prijatelja)';
+  if (b.promo === 'PREPORUKA-SAT') return 'Jedan sat besplatno (hvala na preporuci)';
+  if (b.promo === 'RUČNO') return `${promoPctOf(b)}% popusta`;
+  return `${b.promo}, ${promoPctOf(b)}% popusta`;
+};
 
 export function sarajevoNow(at = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);

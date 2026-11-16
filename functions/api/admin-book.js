@@ -1,9 +1,11 @@
-import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, applyPromo, roundHalf, promoLine, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
+import { checkQuery, tableFor, loadDay, loadSchedule, total, priceText, applyPromo, roundHalf, promoLine, PRICES, NAMES, fmt, zoneLabel, sarajevoNow, BUFFER_MIN } from '../_lib/rules.js';
 import { tr, langOf, cofficePage } from '../_lib/i18n.js';
 import { esc, makeToken, newId, isEmail, clean } from '../_lib/util.js';
 import { mail, C } from '../_lib/mail.js';
 import { listBlocks, sendMail, createEvent } from '../_lib/graph.js';
 import { googleUrl } from '../_lib/cal.js';
+import { dostupne, iskoristi, PRIJATELJ_PCT } from '../_lib/preporuke.js';
+
 import { markOptIn, subscribeIfOptedIn } from '../_lib/newsletter.js';
 
 // Ručno dodavanje rezervacije s nadzorne ploče popunjenosti. Rezervacija je odmah potvrđena (nema koraka odobravanja),
@@ -16,9 +18,23 @@ const whenOf = (b) => `${b.date.split('-').reverse().join('.')} ${fmt(b.start_mi
 // Cijena s popustom: ili promo kod (ista pravila kao na sajtu), ili ručni popust u %, ili ručno upisana konačna cijena. Samo jedno od tri.
 // Vraća { sum, base, promo } (promo = oznaka za kolonu promo, ili null ako popust ništa ne mijenja) ili { error }.
 async function priced(env, b, q, start, email, phone) {
+  const pre = String(b.preporuka || '').match(/^(\d+):(friend|referrer)$/);
   const sch = await loadSchedule(env), base = total(q.zone, q.dur, q.persons, q.date, 0, start, sch);
   const kod = clean(b.kod, 30), pct = b.popust === '' || b.popust == null ? null : Number(b.popust), fix = b.cijena === '' || b.cijena == null ? null : Number(b.cijena);
-  if ([kod, pct !== null, fix !== null].filter(Boolean).length > 1) return { error: 'Upiši samo jedno: promo kod, popust u % ili konačnu cijenu.' };
+  if ([kod, pct !== null, fix !== null, !!pre].filter(Boolean).length > 1) return { error: 'Upiši samo jedno: promo kod, popust u %, konačnu cijenu ili nagradu za preporuku.' };
+  if (pre) { // nagrada za preporuku: provjera se ponavlja ovdje, ne vjeruje se formi
+    const d = await dostupne(env, email), id = +pre[1], strana = pre[2];
+    if (strana === 'friend') {
+      if (!d.friend || d.friend.id !== id) return { error: 'Ovaj gost nema dostupnih 30% za preporuku (nema prvu rezervaciju ili je nagrada već iskorištena).' };
+      const sum = total(q.zone, q.dur, q.persons, q.date, PRIJATELJ_PCT, start, sch);
+      if (sum >= base) return { error: 'Za taj termin popust ne mijenja cijenu.' };
+      return { sum, base, promo: 'PREPORUKA', preporuka: { id, strana } };
+    }
+    if (!d.referrer.some((r) => r.id === id)) return { error: 'Ovaj gost nema besplatan sat (prijatelj još nije došao ili je nagrada iskorištena).' };
+    const sum = Math.max(0, roundHalf(base - PRICES[q.zone][1]));
+    if (sum >= base) return { error: 'Za taj termin popust ne mijenja cijenu.' };
+    return { sum, base, promo: 'PREPORUKA-SAT', preporuka: { id, strana } };
+  }
   if (kod) {
     const ap = await applyPromo(env, kod, { ...q, email, phone });
     if (!ap.ok) return { error: ap.error };
@@ -44,6 +60,10 @@ export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'Neispravan zahtjev.' }, 400); }
 
   const q = { zone: clean(b.zona, 10), dur: +b.trajanje, persons: +b.osobe || 1, date: clean(b.datum, 10) };
+  if (b.preporuke_za) { // koje nagrade za preporuku ovaj e-mail može iskoristiti (za formu)
+    try { const d = await dostupne(env, clean(b.email, 160).toLowerCase()); return json({ ok: true, friend: d.friend ? { id: d.friend.id, od: d.friend.referrer_ime } : null, referrer: d.referrer.map((r) => ({ id: r.id, prijatelj: r.friend_ime })) }); }
+    catch (e) { console.error(e); return json({ ok: false, error: 'Provjera nije uspjela.' }, 503); }
+  }
   if (b.cijena_provjera) { // pregled cijene za formu (bez upisa)
     const st = Number.isInteger(+b.pocetak) && b.pocetak !== '' && b.pocetak != null ? +b.pocetak : null;
     if (checkQuery({ ...q, date: sarajevoNow().date }) && /^(Nepoznata zona|Nepoznato trajanje|Neispravan broj osoba)/.test(checkQuery({ ...q, date: sarajevoNow().date }))) return json({ ok: false, error: 'Neispravan upit.' }, 400);
@@ -95,6 +115,7 @@ export async function onRequestPost({ request, env }) {
     .bind(id, new Date().toISOString(), q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null, pr.promo).run();
   else await env.DB.prepare("INSERT INTO bookings (id, created_at, status, zone, persons, date, start_min, dur_h, total, name, email, phone) VALUES (?,?,'confirmed',?,?,?,?,?,?,?,?,?)")
     .bind(id, new Date().toISOString(), q.zone, q.persons, q.date, start, q.dur, sum, name, email, phone || null).run();
+  if (pr.preporuka) await iskoristi(env, pr.preporuka.id, pr.preporuka.strana, id);
   const r = await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
   if (b.newsletter === true) { await markOptIn(env, id); await subscribeIfOptedIn(env, r); } // samo ako je osoblje označilo da je gost pristao
 
